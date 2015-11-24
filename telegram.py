@@ -331,3 +331,45 @@ class Telegram(Bot):
         req = self.post_request(data, self.api['getUpdates'])
 
         return req[0]['message']['text']
+
+
+class User(object):
+
+    id = 0
+    first_name = ''
+    last_name = ''
+    username = ''
+
+    def __init__(self, id=0, first_name='', last_name=''):
+        self.id = id
+        self.first_name = first_name
+        self.last_name = last_name
+
+    @classmethod
+    def from_json(cls, user):
+        print (user)
+        return cls(user['id'], user['first_name'], user['last_name'])
+
+
+class Parser:
+
+    result = ''
+
+    def __init__(self, result=''):
+        self.result = result
+
+    @classmethod
+    def get(cls, message, **kwargs):
+
+        result = ''
+
+        for key, val in kwargs.iteritems():
+
+            if key == 'chat':
+                if val == 'from':
+                    chat_from = User.from_json(user=message)
+                    result = (chat_from.username + ' (' +
+                              chat_from.first_name + ' ' +
+                              chat_from.last_name + ') ' + ' ' +
+                              str(chat_from.id))
+        return result

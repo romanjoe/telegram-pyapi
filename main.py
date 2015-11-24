@@ -16,7 +16,8 @@ def main():
         bot.offset = update['update_id']
 
         bot.chat_id = update['message']['chat']['id']
-        print (update['message']['text'])
+        # print (update['message']['text'])
+        print (telegram.Parser.get(update['message']['from'], chat='from'))
 
 if __name__ == '__main__':
     while True:
