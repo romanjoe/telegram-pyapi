@@ -1,5 +1,6 @@
 import requests
 import time
+from datetime import datetime as dt
 
 DEBUG = False
 
@@ -347,8 +348,87 @@ class User(object):
 
     @classmethod
     def from_json(cls, user):
-        print (user)
         return cls(user['id'], user['first_name'], user['last_name'])
+
+
+class Chat(object):
+
+    id = 0
+    type = ''
+    title = ''
+    first_name = ''
+    last_name = ''
+
+    def __init__(self, id=0, type='', first_name='', last_name=''):
+
+        self.id = id
+        self.type = type
+        self.first_name = first_name
+        self.last_name = last_name
+
+    @classmethod
+    def from_json(cls, chat):
+        return cls(chat['id'], chat['type'], chat['first_name'], chat['last_name'])
+
+
+class Message(object):
+
+    message_id = 0
+    message_from = ''
+    date = 0
+    chat = ''
+    # forward_from = ''
+    # forward_date = ''
+    # reply_to_massage = ''
+    # text = ''
+    # audio = ''
+    # document = ''
+    # photo = ''
+    # sticker = ''
+    # video = ''
+    # voice = ''
+    # caption = ''
+    # contact = ''
+    # location = ''
+
+    # TODO to be added in future
+    # new_chat_participant = ''
+    # left_chat_participant = ''
+    # new_chat_title = ''
+    # new_chat_photo = ''
+    # group_chat_created = ''
+    # supergrop_chat_created = ''
+    # channel_chat_created = ''
+    # migrate_to_chat_id = ''
+    # migrate_from_chat_id = ''
+
+    def __init__(self,
+                 message_id=0,
+                 message_from='',
+                 date=0,
+                 chat=''
+                 # forward_from = '',
+                 # forward_date = '',
+                 # reply_to_massage = '',
+                 # text = '',
+                 # audio = '',
+                 # document = '',
+                 # photo = '',
+                 # sticker = '',
+                 # video = '',
+                 # voice = '',
+                 # caption = '',
+                 # contact = '',
+                 # location = ''
+                 ):
+        self.message_id = message_id
+        self.message_from = message_from
+        self.date = date
+        self.chat = chat
+
+    @classmethod
+    def from_json(cls, response):
+        return cls(response['message_id'], response['from'], response['date'], response['chat'])
 
 
 class Parser:
@@ -363,13 +443,32 @@ class Parser:
 
         result = ''
 
+        json = Message.from_json(response=message['message'])
+
+        if DEBUG:
+            print "+++++++ This is json message" + str(json.chat)
+
+        chat = Chat.from_json(json.chat)
+        chat_from = User.from_json(json.message_from)
+
         for key, val in kwargs.iteritems():
 
-            if key == 'chat':
+            if key == 'extract_field':
                 if val == 'from':
-                    chat_from = User.from_json(user=message)
                     result = (chat_from.username + ' (' +
                               chat_from.first_name + ' ' +
                               chat_from.last_name + ') ' + ' ' +
                               str(chat_from.id))
+
+                elif val == 'chat':
+                    result = ("Message received in " + chat.type + " chat " +
+                              str(chat.id) + " from " + chat.first_name + " " +
+                              chat.last_name)
+
+                elif val == 'message_id':
+                    result = ("Message id = " + str(json.message_id))
+
+                elif val == 'date':
+                    result = ('Message received at ' + dt.fromtimestamp(json.date).strftime('%Y-%m-%d %H:%M:%S'))
+
         return result
