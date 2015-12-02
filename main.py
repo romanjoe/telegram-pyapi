@@ -16,7 +16,7 @@ def main():
         bot.offset = update['update_id']
 
         bot.chat_id = update['message']['chat']['id']
-#        print (update)
+        print (update)
         print (telegram.Parser.get(update, extract_field='from'))
         print '----------'
         print (telegram.Parser.get(update, extract_field='chat'))
@@ -24,6 +24,15 @@ def main():
         print (telegram.Parser.get(update, extract_field='message_id'))
         print '----------'
         print (telegram.Parser.get(update, extract_field='date'))
+        print '----------'
+
+        # test getting thumbnails links
+        # thumbnails will receive a dictionary, were key is available resolution and value is file_id according
+        # then method getFile applied to each file_id of all available resolutions
+        thumbnails = (telegram.Parser.get(update, extract_field='photo_size'))
+        for size in thumbnails.keys():
+            link = bot.get_file(thumbnails.pop(size))
+            print link
 
 if __name__ == '__main__':
     while True:

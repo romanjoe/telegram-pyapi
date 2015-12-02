@@ -313,7 +313,7 @@ class Telegram(Bot):
         message = self.post_request(data, self.api['getFile'])
         file_path = message['file_path']
 
-        download_link = ('https://api.telegram.org/file/bot' + self.token + file_path)
+        download_link = ('https://api.telegram.org/file/bot' + self.token + "/" + file_path)
 
         return download_link
 
@@ -336,6 +336,11 @@ class Telegram(Bot):
 
 class User(object):
 
+    """
+    This object represents a Telegram user or bot
+    """
+
+    # attributes:
     id = 0
     first_name = ''
     last_name = ''
@@ -353,6 +358,10 @@ class User(object):
 
 class Chat(object):
 
+    """
+    This object represents a chat
+    """
+    # attributes:
     id = 0
     type = ''
     title = ''
@@ -373,6 +382,10 @@ class Chat(object):
 
 class Message(object):
 
+    """
+    This object represents a message
+    """
+    # attributes:
     message_id = 0
     message_from = ''
     date = 0
@@ -383,7 +396,7 @@ class Message(object):
     # text = ''
     # audio = ''
     # document = ''
-    # photo = ''
+    photo = []
     # sticker = ''
     # video = ''
     # voice = ''
@@ -406,14 +419,14 @@ class Message(object):
                  message_id=0,
                  message_from='',
                  date=0,
-                 chat=''
+                 chat='',
                  # forward_from = '',
                  # forward_date = '',
                  # reply_to_massage = '',
                  # text = '',
                  # audio = '',
                  # document = '',
-                 # photo = '',
+                 photo=[]
                  # sticker = '',
                  # video = '',
                  # voice = '',
@@ -425,10 +438,38 @@ class Message(object):
         self.message_from = message_from
         self.date = date
         self.chat = chat
+        self.photo = photo
 
     @classmethod
     def from_json(cls, response):
-        return cls(response['message_id'], response['from'], response['date'], response['chat'])
+
+        # photo field must be filled with array of retrieved array of PhotoSize
+        for i in response['photo']:
+            cls.photo.append(i)
+
+        return cls(response['message_id'], response['from'], response['date'], response['chat'], response['photo'])
+
+
+class PhotoSize(object):
+
+    """
+    This object represents one size of a photo or a file / sticker thumbnail
+    """
+    # attributes:
+    file_id = ''
+    width = 0
+    height = 0
+    file_size = 0
+
+    def __init__(self, file_id='', width=0, height=0, files_size=0):
+        self.file_id = file_id
+        self.width = width
+        self.height = height
+        self.file_size = files_size
+
+    @classmethod
+    def from_json(cls, photo_size):
+        return cls(photo_size['file_id'], photo_size['width'], photo_size['height'], photo_size['file_size'])
 
 
 class Parser:
@@ -471,4 +512,18 @@ class Parser:
                 elif val == 'date':
                     result = ('Message received at ' + dt.fromtimestamp(json.date).strftime('%Y-%m-%d %H:%M:%S'))
 
+                elif val == 'photo_size':
+                    available_photo_sizes_array = []
+
+                    result = {}
+
+                    for photo in json.photo:
+                        available_photo_sizes_array.append(PhotoSize.from_json(photo))
+
+                    for size in available_photo_sizes_array:
+                        resolution = str(size.width) + "x" + str(size.height)
+                        file_id = str(size.file_id)
+                        result[resolution] = file_id
+
         return result
+
