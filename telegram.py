@@ -380,6 +380,120 @@ class Chat(object):
         return cls(chat['id'], chat['type'], chat['first_name'], chat['last_name'])
 
 
+class PhotoSize(object):
+
+    """
+    This object represents one size of a photo or a file / sticker thumbnail
+    """
+    # attributes:
+    file_id = ''
+    width = 0
+    height = 0
+    file_size = 0
+
+    def __init__(self, file_id='', width=0, height=0, files_size=0):
+        self.file_id = file_id
+        self.width = width
+        self.height = height
+        self.file_size = files_size
+
+    @classmethod
+    def from_json(cls, photo_size):
+        return cls(photo_size['file_id'], photo_size['width'], photo_size['height'], photo_size['file_size'])
+
+
+class Audio(object):
+
+    file_id = ''
+    duration = 0
+    performer = ''
+    title = ''
+    mime_type = ''
+    file_size = 0
+
+
+class Document(object):
+
+    file_id = ''
+    thumb = ''
+    file_name = ''
+    mime_type = ''
+    file_size = 0
+
+
+class Sticker(object):
+
+    file_id = ''
+    width = 0
+    height = 0
+    thumb = PhotoSize()
+    file_size = 0
+
+    def __init__(self, file_id='', width=0, height=0, thumb=PhotoSize(), file_size=0):
+        self.file_id = file_id
+        self.width = width
+        self.height = height
+        self.thumb = thumb
+        self.file_size = file_size
+
+    @classmethod
+    def from_json(cls, sticker):
+
+        cls.thumb = PhotoSize.from_json(sticker['thumb'])
+        cls.file_id = sticker['file_id']
+        cls.width = sticker['width']
+        cls.height = sticker['height']
+        cls.file_size = sticker['file_size']
+
+        return cls #(sticker['file_id'], sticker['width'], sticker['height'], sticker['file_size'])
+
+
+class Video(object):
+
+    file_id = ''
+    width = 0
+    height = 0
+    duration = 0
+    thumb = []
+    mime_type = ''
+    file_size = 0
+
+
+class Voice(object):
+
+    file_id = ''
+    mime_type = ''
+    duration = 0
+    file_size = 0
+
+
+class Contact(object):
+
+    phone_number = ''
+    first_name = ''
+    last_name = ''
+    user_id	= 0
+
+
+class Location(object):
+
+    longitude = 0.0
+    latitude = 0.0
+
+
+class UserProfilePhotos(object):
+
+    total_count = 0
+    photos = []
+
+
+class File(object):
+
+    file_id = ''
+    file_size = 0
+    file_path = ''
+
+
 class Message(object):
 
     """
@@ -397,7 +511,7 @@ class Message(object):
     # audio = ''
     # document = ''
     photo = []
-    # sticker = ''
+    sticker = Sticker()
     # video = ''
     # voice = ''
     # caption = ''
@@ -426,8 +540,8 @@ class Message(object):
                  # text = '',
                  # audio = '',
                  # document = '',
-                 photo=[]
-                 # sticker = '',
+                 photo=[],
+                 sticker=Sticker()
                  # video = '',
                  # voice = '',
                  # caption = '',
@@ -439,37 +553,25 @@ class Message(object):
         self.date = date
         self.chat = chat
         self.photo = photo
+        self.sticker = sticker
 
     @classmethod
     def from_json(cls, response):
 
         # photo field must be filled with array of retrieved array of PhotoSize
-        for i in response['photo']:
-            cls.photo.append(i)
+        try:
+            for i in response['photo']:
+                cls.photo.append(i)
+            # TODO: investigate if response['photo'] needed in return string (suppose NO)
+        except:
+            pass
 
-        return cls(response['message_id'], response['from'], response['date'], response['chat'], response['photo'])
+        try:
+            cls.sticker = Sticker.from_json(response['sticker'])
+        except:
+            pass
 
-
-class PhotoSize(object):
-
-    """
-    This object represents one size of a photo or a file / sticker thumbnail
-    """
-    # attributes:
-    file_id = ''
-    width = 0
-    height = 0
-    file_size = 0
-
-    def __init__(self, file_id='', width=0, height=0, files_size=0):
-        self.file_id = file_id
-        self.width = width
-        self.height = height
-        self.file_size = files_size
-
-    @classmethod
-    def from_json(cls, photo_size):
-        return cls(photo_size['file_id'], photo_size['width'], photo_size['height'], photo_size['file_size'])
+        return cls(response['message_id'], response['from'], response['date'], response['chat'])
 
 
 class Parser:
@@ -489,8 +591,8 @@ class Parser:
         if DEBUG:
             print "+++++++ This is json message" + str(json.chat)
 
-        chat = Chat.from_json(json.chat)
-        chat_from = User.from_json(json.message_from)
+        # chat = Chat.from_json(json.chat)
+        # chat_from = User.from_json(json.message_from)
 
         for key, val in kwargs.iteritems():
 
@@ -524,6 +626,12 @@ class Parser:
                         resolution = str(size.width) + "x" + str(size.height)
                         file_id = str(size.file_id)
                         result[resolution] = file_id
+
+                elif val == 'sticker':
+                    sticker = json.sticker
+                    print str(sticker)
+
+                    result = str(sticker.height) + "x" + str(sticker.width)
 
         return result
 
