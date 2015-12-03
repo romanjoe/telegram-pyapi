@@ -445,7 +445,7 @@ class Sticker(object):
         cls.height = sticker['height']
         cls.file_size = sticker['file_size']
 
-        return cls #(sticker['file_id'], sticker['width'], sticker['height'], sticker['file_size'])
+        return cls
 
 
 class Video(object):
@@ -501,9 +501,9 @@ class Message(object):
     """
     # attributes:
     message_id = 0
-    message_from = ''
+    message_from = User()
     date = 0
-    chat = ''
+    chat = Chat()
     # forward_from = ''
     # forward_date = ''
     # reply_to_massage = ''
@@ -531,9 +531,9 @@ class Message(object):
 
     def __init__(self,
                  message_id=0,
-                 message_from='',
+                 message_from=User(),
                  date=0,
-                 chat='',
+                 chat=Chat(),
                  # forward_from = '',
                  # forward_date = '',
                  # reply_to_massage = '',
@@ -558,20 +558,35 @@ class Message(object):
     @classmethod
     def from_json(cls, response):
 
+        try:
+            cls.message_id = response['message_id']
+            cls.date = response['date']
+        except KeyError:
+            pass
+
+        try:
+            cls.message_from = User.from_json(response['from'])
+        except KeyError:
+            pass
+
+        try:
+            cls.chat = Chat.from_json(response['chat'])
+        except KeyError:
+            pass
         # photo field must be filled with array of retrieved array of PhotoSize
         try:
             for i in response['photo']:
                 cls.photo.append(i)
             # TODO: investigate if response['photo'] needed in return string (suppose NO)
-        except:
-            pass
+        except KeyError:
+            print "No key photo in response"
 
         try:
             cls.sticker = Sticker.from_json(response['sticker'])
-        except:
+        except KeyError:
             pass
 
-        return cls(response['message_id'], response['from'], response['date'], response['chat'])
+        return cls
 
 
 class Parser:
@@ -588,25 +603,22 @@ class Parser:
 
         json = Message.from_json(response=message['message'])
 
-        if DEBUG:
-            print "+++++++ This is json message" + str(json.chat)
-
-        # chat = Chat.from_json(json.chat)
-        # chat_from = User.from_json(json.message_from)
-
         for key, val in kwargs.iteritems():
 
             if key == 'extract_field':
                 if val == 'from':
-                    result = (chat_from.username + ' (' +
-                              chat_from.first_name + ' ' +
-                              chat_from.last_name + ') ' + ' ' +
-                              str(chat_from.id))
+                    # result = str(json.message_from.first_name) + " " + \
+                    #          str(json.message_from.last_name) + " in chat " + \
+                    #          str(json.chat.id)
+                    result = (json.message_from.username + ' (' +
+                              json.message_from.first_name + ' ' +
+                              json.message_from.last_name + ') ' + ' ' +
+                              str(json.message_from.id))
 
                 elif val == 'chat':
-                    result = ("Message received in " + chat.type + " chat " +
-                              str(chat.id) + " from " + chat.first_name + " " +
-                              chat.last_name)
+                    result = ("Message received in " + json.chat.type + " chat " +
+                              str(json.chat.id) + " from " + json.chat.first_name + " " +
+                              json.chat.last_name)
 
                 elif val == 'message_id':
                     result = ("Message id = " + str(json.message_id))
@@ -615,23 +627,34 @@ class Parser:
                     result = ('Message received at ' + dt.fromtimestamp(json.date).strftime('%Y-%m-%d %H:%M:%S'))
 
                 elif val == 'photo_size':
-                    available_photo_sizes_array = []
+                    """
+                    When asking Parser for photo_size, it will return a dictionary with
+                    available resolutions and according id in form:
+                    {"90x90": "id", "WxH": "id"}
+                    """
+                    available_thumbnail_sizes_array = []
 
                     result = {}
 
                     for photo in json.photo:
-                        available_photo_sizes_array.append(PhotoSize.from_json(photo))
+                        available_thumbnail_sizes_array.append(PhotoSize.from_json(photo))
 
-                    for size in available_photo_sizes_array:
+                    for size in available_thumbnail_sizes_array:
                         resolution = str(size.width) + "x" + str(size.height)
                         file_id = str(size.file_id)
                         result[resolution] = file_id
 
                 elif val == 'sticker':
-                    sticker = json.sticker
-                    print str(sticker)
+                    """
+                    When asking Parser for sticker it will return a dictionary with sticker resolution and sticker id
+                    of last received sticker in chat in form of {"WxH": "id"}
+                    """
+                    result = {}
 
-                    result = str(sticker.height) + "x" + str(sticker.width)
+                    sticker = json.sticker
+                    resolution = str(sticker.width) + "x" + str(sticker.height)
+                    file_id = str(sticker.file_id)
+                    result[resolution] = file_id
 
         return result
 
