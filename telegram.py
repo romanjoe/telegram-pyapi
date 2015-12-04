@@ -1,5 +1,6 @@
 import requests
 import time
+import exceptions
 from datetime import datetime as dt
 
 DEBUG = False
@@ -294,11 +295,40 @@ class Telegram(Bot):
         Link for description: https://core.telegram.org/bots/api#getupdates
 
         :parameter limit: sets maximum amount of messages to request. default = 1
-        :return: An Array of Update json objects is returned https://core.telegram.org/bots/api#update
+        :return: If limit parameter equals 1, as in default case - single update_object returned
+                 if limit parameter is bigger than one, then an Array of updates_objects returned
+                 https://core.telegram.org/bots/api#update
         """
 
         data = {'offset': self.offset + 1, 'limit': limit, 'timeout': 0}
-        return self.post_request(data, self.api['getUpdates'])
+        updates = self.post_request(data, self.api['getUpdates'])
+
+        if limit == 1:
+            try:
+                single_update_object = Update(updates[0])
+                self.offset = updates[0]['update_id']
+                self.chat_id = updates[0]['message']['chat']['id']
+
+                return single_update_object
+
+            except IndexError:
+                return []
+
+        elif limit > 1:
+
+            array_of_updates_objects = []
+
+            for update in updates:
+                array_of_updates_objects.append(Update(update))
+                self.offset = update['update_id']
+                self.chat_id = update['message']['chat']['id']
+
+            return array_of_updates_objects
+
+        elif limit == 0:
+            raise exceptions.ValueError("[MESSAGE] Cant retrieve 0 updates, please, specify value bigger than 1"
+                                        " to get_updates() method or leave it"
+                                        " blank to retrieve first of unread updates")
 
     def get_file(self, file_id):
 
@@ -402,6 +432,18 @@ class PhotoSize(object):
         return cls(photo_size['file_id'], photo_size['width'], photo_size['height'], photo_size['file_size'])
 
 
+class Text(object):
+
+    text_message = ''
+
+    def __init__(self, message=''):
+        self.text_message = message
+
+    @classmethod
+    def from_json(cls, plain_text):
+        return cls(str(plain_text))
+
+
 class Audio(object):
 
     file_id = ''
@@ -411,14 +453,59 @@ class Audio(object):
     mime_type = ''
     file_size = 0
 
+    def __init__(self, file_id='', duration=0, performer='', title='', mime_type='', file_size=0):
+        self.file_id = file_id
+        self.duration = duration
+        self.performer = performer
+        self.title = title
+        self.mime_type = mime_type
+        self.file_size = file_size
+
+    @classmethod
+    def from_json(cls, audio):
+
+        cls.file_id = audio['file_id']
+        cls.duration = audio['duration']
+        cls.performer = audio['performer']
+        cls.title = audio['title']
+        cls.mime_type = audio['mime_type']
+        cls.file_size = audio['file_size']
+
+        return cls
+
 
 class Document(object):
 
     file_id = ''
-    thumb = ''
+    thumb = PhotoSize()
     file_name = ''
     mime_type = ''
     file_size = 0
+
+    def __init__(self, file_id='', thumb=PhotoSize(), file_name='', mime_type='', file_size=0):
+        self.file_id = file_id
+        self.thumb = thumb
+        self.file_name = file_name
+        self.mime_type = mime_type
+        self.file_size = file_size
+
+    @classmethod
+    def from_json(cls, document):
+
+        cls.file_size = document['file_size']
+        cls.file_id = document['file_id']
+        cls.file_name = document['file_name']
+        cls.mime_type = document['mime_type']
+
+        try:
+            """
+            Since thumbnails is available not for every document
+            """
+
+            cls.thumb = document['thumb']
+            return cls
+        finally:
+            return cls
 
 
 class Sticker(object):
@@ -454,9 +541,40 @@ class Video(object):
     width = 0
     height = 0
     duration = 0
-    thumb = []
+    thumb = PhotoSize()
     mime_type = ''
     file_size = 0
+
+    def __init__(self, file_id='', width=0, height=0, duration=0, thumb=PhotoSize(), mime_type='', file_size=0):
+        self.file_id = file_id
+        self.width = width
+        self.height = height
+        self.duration = duration
+        self.thumb = PhotoSize()
+        self.mime_type = mime_type
+        self.file_size = file_size
+
+    @classmethod
+    def from_json(cls, video):
+
+        cls.file_id = video['file_id']
+        cls.width = video['width']
+        cls.height = video['height']
+        cls.duration = video['duration']
+        cls.file_size = video['file_size']
+
+        try:
+            cls.mime_type = video['mime_type']
+        except KeyError:
+            pass
+
+        try:
+            cls.thumb = PhotoSize.from_json(video['thumb'])
+
+            return cls
+
+        finally:
+            return cls
 
 
 class Voice(object):
@@ -466,13 +584,29 @@ class Voice(object):
     duration = 0
     file_size = 0
 
+    def __init__(self, file_id='', mime_type='', duration=0, file_size=0):
+        self.file_id = file_id
+        self.mime_type = mime_type
+        self.duration = duration
+        self.file_size = file_size
+
+    @classmethod
+    def from_json(cls, voice):
+
+        cls.file_id = voice['file_id']
+        cls.mime_type = voice['mime_type']
+        cls.duration = voice['duration']
+        cls.file_size = voice['file_size']
+
+        return cls
+
 
 class Contact(object):
 
     phone_number = ''
     first_name = ''
     last_name = ''
-    user_id	= 0
+    user_id = 0
 
 
 class Location(object):
@@ -506,14 +640,14 @@ class Message(object):
     chat = Chat()
     # forward_from = ''
     # forward_date = ''
-    # reply_to_massage = ''
-    # text = ''
-    # audio = ''
-    # document = ''
+    # reply_to_message = ''
+    text = Text(),
+    audio = Audio(),
+    document = Document(),
     photo = []
     sticker = Sticker()
-    # video = ''
-    # voice = ''
+    video = Video(),
+    voice = Voice()
     # caption = ''
     # contact = ''
     # location = ''
@@ -524,7 +658,7 @@ class Message(object):
     # new_chat_title = ''
     # new_chat_photo = ''
     # group_chat_created = ''
-    # supergrop_chat_created = ''
+    # supergroup_chat_created = ''
     # channel_chat_created = ''
     # migrate_to_chat_id = ''
     # migrate_from_chat_id = ''
@@ -537,13 +671,13 @@ class Message(object):
                  # forward_from = '',
                  # forward_date = '',
                  # reply_to_massage = '',
-                 # text = '',
-                 # audio = '',
-                 # document = '',
+                 text=Text(),
+                 audio=Audio(),
+                 document=Document(),
                  photo=[],
-                 sticker=Sticker()
-                 # video = '',
-                 # voice = '',
+                 sticker=Sticker(),
+                 video=Video(),
+                 voice=Voice()
                  # caption = '',
                  # contact = '',
                  # location = ''
@@ -552,8 +686,12 @@ class Message(object):
         self.message_from = message_from
         self.date = date
         self.chat = chat
+        self.audio = audio
+        self.document = document
         self.photo = photo
         self.sticker = sticker
+        self.video = video
+        self.voice = voice
 
     @classmethod
     def from_json(cls, response):
@@ -573,88 +711,54 @@ class Message(object):
             cls.chat = Chat.from_json(response['chat'])
         except KeyError:
             pass
-        # photo field must be filled with array of retrieved array of PhotoSize
+
+        try:
+            cls.text = Text.from_json(response['text'])
+        except KeyError:
+            pass
+
+        try:
+            cls.audio = Audio.from_json(response['audio'])
+        except KeyError:
+            pass
+
+        try:
+            cls.document = Document.from_json(response['document'])
+        except KeyError:
+            pass
+
         try:
             for i in response['photo']:
                 cls.photo.append(i)
-            # TODO: investigate if response['photo'] needed in return string (suppose NO)
         except KeyError:
-            print "No key photo in response"
+            pass
 
         try:
             cls.sticker = Sticker.from_json(response['sticker'])
         except KeyError:
             pass
 
+        try:
+            cls.video = Video.from_json(response['video'])
+        except KeyError:
+            pass
+
+        try:
+            cls.voice = Voice.from_json(response['voice'])
+        except KeyError:
+            pass
+
         return cls
 
 
-class Parser:
+class Update:
 
-    result = ''
+    raw_update = ''
 
-    def __init__(self, result=''):
-        self.result = result
+    def __init__(self, update):
+        self.raw_update = update
+        self.Update = self.construct(update)
 
-    @classmethod
-    def get(cls, message, **kwargs):
-
-        result = ''
-
-        json = Message.from_json(response=message['message'])
-
-        for key, val in kwargs.iteritems():
-
-            if key == 'extract_field':
-                if val == 'from':
-                    # result = str(json.message_from.first_name) + " " + \
-                    #          str(json.message_from.last_name) + " in chat " + \
-                    #          str(json.chat.id)
-                    result = (json.message_from.username + ' (' +
-                              json.message_from.first_name + ' ' +
-                              json.message_from.last_name + ') ' + ' ' +
-                              str(json.message_from.id))
-
-                elif val == 'chat':
-                    result = ("Message received in " + json.chat.type + " chat " +
-                              str(json.chat.id) + " from " + json.chat.first_name + " " +
-                              json.chat.last_name)
-
-                elif val == 'message_id':
-                    result = ("Message id = " + str(json.message_id))
-
-                elif val == 'date':
-                    result = ('Message received at ' + dt.fromtimestamp(json.date).strftime('%Y-%m-%d %H:%M:%S'))
-
-                elif val == 'photo_size':
-                    """
-                    When asking Parser for photo_size, it will return a dictionary with
-                    available resolutions and according id in form:
-                    {"90x90": "id", "WxH": "id"}
-                    """
-                    available_thumbnail_sizes_array = []
-
-                    result = {}
-
-                    for photo in json.photo:
-                        available_thumbnail_sizes_array.append(PhotoSize.from_json(photo))
-
-                    for size in available_thumbnail_sizes_array:
-                        resolution = str(size.width) + "x" + str(size.height)
-                        file_id = str(size.file_id)
-                        result[resolution] = file_id
-
-                elif val == 'sticker':
-                    """
-                    When asking Parser for sticker it will return a dictionary with sticker resolution and sticker id
-                    of last received sticker in chat in form of {"WxH": "id"}
-                    """
-                    result = {}
-
-                    sticker = json.sticker
-                    resolution = str(sticker.width) + "x" + str(sticker.height)
-                    file_id = str(sticker.file_id)
-                    result[resolution] = file_id
-
-        return result
-
+    @staticmethod
+    def construct(message):
+        return Message.from_json(response=message['message'])
