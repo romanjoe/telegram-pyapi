@@ -1,8 +1,8 @@
-import telegram
+import telegrambot as tb
 
 TOKEN = '152394201:AAE6wwKF-y9gddMrXUTAnGNbGrifJKFHU-I'
 
-bot = telegram.Telegram(token=TOKEN)
+bot = tb.TelegramBot(token=TOKEN)
 
 if not bot.get_me():
     exit(1)
@@ -11,6 +11,8 @@ if not bot.get_me():
 def main():
 
     updates = bot.get_updates()
+
+#    username = updates.Update.forward_from.username
 
     print "done"
 

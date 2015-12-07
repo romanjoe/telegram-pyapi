@@ -6,7 +6,7 @@ from datetime import datetime as dt
 DEBUG = False
 
 
-class Bot(object):
+class Telegram(object):
     """
     Abstract class
     """
@@ -24,7 +24,7 @@ class Bot(object):
     def post_request(self, data, api_call):
 
         if DEBUG:
-            Bot.log_event('Sending json %s to %s' % (data, data['chat_id'], ))
+            Telegram.log_event('Sending json %s to %s' % (data, data['chat_id'],))
             # TODO: make more precise function fro logging
 
         response = requests.post(self.url_token + api_call, data=data)
@@ -37,7 +37,7 @@ class Bot(object):
         return response.json()['result']
 
 
-class Telegram(Bot):
+class TelegramBot(Telegram):
 
     """
     Telegram bot class, implements API calls
@@ -62,7 +62,7 @@ class Telegram(Bot):
            'getFile': '/getFile'}
 
     def __init__(self, token):
-        Bot.__init__(self, token=token)
+        Telegram.__init__(self, token=token)
         self.token = token
         self.offset = 0
         self.chat_id = 0
@@ -381,9 +381,23 @@ class User(object):
         self.first_name = first_name
         self.last_name = last_name
 
-    @classmethod
-    def from_json(cls, user):
-        return cls(user['id'], user['first_name'], user['last_name'])
+#    @classmethod
+    def from_json(self, user):
+
+        self.id = user['id']
+        self.first_name = user['first_name']
+
+        try:
+            self.last_name = user['last_name']
+        except KeyError:
+            self.last_name = ''
+            pass
+        try:
+            self.username = user['username']
+        except KeyError:
+            pass
+
+        return self
 
 
 class Chat(object):
@@ -434,6 +448,10 @@ class PhotoSize(object):
 
 class Text(object):
 
+    """
+    This object represents a text field in Message()
+    """
+
     text_message = ''
 
     def __init__(self, message=''):
@@ -445,6 +463,10 @@ class Text(object):
 
 
 class Audio(object):
+
+    """
+    This object represents an audio file to be treated as music by the Telegram clients.
+    """
 
     file_id = ''
     duration = 0
@@ -475,6 +497,10 @@ class Audio(object):
 
 
 class Document(object):
+
+    """
+    This object represents a general file (as opposed to photos, voice messages and audio files).
+    """
 
     file_id = ''
     thumb = PhotoSize()
@@ -510,6 +536,10 @@ class Document(object):
 
 class Sticker(object):
 
+    """
+    This object represents a sticker.
+    """
+
     file_id = ''
     width = 0
     height = 0
@@ -536,6 +566,10 @@ class Sticker(object):
 
 
 class Video(object):
+
+    """
+    This object represents a video file.
+    """
 
     file_id = ''
     width = 0
@@ -579,6 +613,10 @@ class Video(object):
 
 class Voice(object):
 
+    """
+    This object represents a voice note.
+    """
+
     file_id = ''
     mime_type = ''
     duration = 0
@@ -603,25 +641,79 @@ class Voice(object):
 
 class Contact(object):
 
+    """
+    This object represents a phone contact.
+    """
+
     phone_number = ''
     first_name = ''
     last_name = ''
     user_id = 0
 
+    def __init__(self, phone_number='', first_name='', last_name='', user_id=0):
+        self.phone_number = phone_number
+        self.first_name = first_name
+        self.last_name = last_name
+        self.user_id = user_id
+
+    @classmethod
+    def from_json(cls, contact):
+
+        cls.phone_number = contact['phone_number']
+        cls.first_name = contact['first_name']
+
+        try:
+            cls.last_name = contact['last_name']
+        except KeyError:
+            pass
+        try:
+            cls.user_id = contact['user_id']
+        except KeyError:
+            pass
+
+        return cls
+
 
 class Location(object):
+
+    """
+    This object represents a point on the map.
+    """
 
     longitude = 0.0
     latitude = 0.0
 
+    def __init__(self, longitude=0.0, latitude=0.0):
+        self.longitude = longitude
+        self.latitude = latitude
+
+    @classmethod
+    def from_json(cls, location):
+
+        cls.longitude = location['longitude']
+        cls.latitude = location['latitude']
+
+        return cls
+
 
 class UserProfilePhotos(object):
+
+    """
+    This object represent a user's profile pictures.
+    """
 
     total_count = 0
     photos = []
 
 
 class File(object):
+
+    """
+    This object represents a file ready to be downloaded.
+    The file can be downloaded via the link https://api.telegram.org/file/bot<token>/<file_path>.
+    It is guaranteed that the link will be valid for at least 1 hour.
+    When the link expires, a new one can be requested by calling getFile.
+    """
 
     file_id = ''
     file_size = 0
@@ -636,21 +728,21 @@ class Message(object):
     # attributes:
     message_id = 0
     message_from = User()
-    date = 0
+    date = ''
     chat = Chat()
-    # forward_from = ''
-    # forward_date = ''
-    # reply_to_message = ''
+    forward_from = User(),
+    forward_date = '',
+    # reply_to_message = '',
     text = Text(),
     audio = Audio(),
     document = Document(),
     photo = []
     sticker = Sticker()
     video = Video(),
-    voice = Voice()
+    voice = Voice(),
     # caption = ''
-    # contact = ''
-    # location = ''
+    contact = Contact(),
+    location = Location()
 
     # TODO to be added in future
     # new_chat_participant = ''
@@ -666,32 +758,37 @@ class Message(object):
     def __init__(self,
                  message_id=0,
                  message_from=User(),
-                 date=0,
+                 date='',
                  chat=Chat(),
-                 # forward_from = '',
-                 # forward_date = '',
-                 # reply_to_massage = '',
+                 forward_from=User(),
+                 forward_date='',
+                 # reply_to_message='',
                  text=Text(),
                  audio=Audio(),
                  document=Document(),
                  photo=[],
                  sticker=Sticker(),
                  video=Video(),
-                 voice=Voice()
+                 voice=Voice(),
                  # caption = '',
-                 # contact = '',
-                 # location = ''
+                 contact=Contact(),
+                 location=Location()
                  ):
         self.message_id = message_id
         self.message_from = message_from
         self.date = date
         self.chat = chat
+        self.forward_from = forward_from
+        self.forward_date = forward_date
+#        self.reply_to_message = reply_to_message
         self.audio = audio
         self.document = document
         self.photo = photo
         self.sticker = sticker
         self.video = video
         self.voice = voice
+        self.contact = contact
+        self.location = location
 
     @classmethod
     def from_json(cls, response):
@@ -703,7 +800,24 @@ class Message(object):
             pass
 
         try:
-            cls.message_from = User.from_json(response['from'])
+            from_user = User()
+            cls.message_from = from_user.from_json(response['from'])
+        except KeyError:
+            pass
+
+        try:
+            forwarded_from_user = User().from_json(response['forward_from'])
+            cls.forward_from = forwarded_from_user
+        except KeyError:
+            pass
+
+        try:
+            cls.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d %H:%M:%S')
+        except KeyError:
+            pass
+
+        try:
+            cls.forward_date = dt.fromtimestamp(response['forward_date']).strftime('%Y-%m-%d %H:%M:%S')
         except KeyError:
             pass
 
@@ -745,6 +859,16 @@ class Message(object):
 
         try:
             cls.voice = Voice.from_json(response['voice'])
+        except KeyError:
+            pass
+
+        try:
+            cls.contact = Contact.from_json(response['contact'])
+        except KeyError:
+            pass
+
+        try:
+            cls.location = Location.from_json(response['location'])
         except KeyError:
             pass
 
