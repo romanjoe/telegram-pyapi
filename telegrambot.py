@@ -2,14 +2,19 @@ import requests
 import time
 import exceptions
 from datetime import datetime as dt
+from abc import ABCMeta
 
 DEBUG = False
 
 
 class Telegram(object):
+
     """
     Abstract class
     """
+
+    __metaclass__ = ABCMeta
+
     API_BASE = 'https://api.telegram.org/bot'
 
     def __init__(self, token):
@@ -376,13 +381,12 @@ class User(object):
     # last_name = ''
     # username = ''
 
-    def __init__(self, id=0, first_name='', last_name='', username=''):
-        self.id = id
+    def __init__(self, user_id=0, first_name='', last_name='', username=''):
+        self.id = user_id
         self.first_name = first_name
         self.last_name = last_name
         self.username = username
 
-#    @classmethod
     def from_json(self, user):
 
         self.id = user['id']
@@ -413,9 +417,9 @@ class Chat(object):
     first_name = ''
     last_name = ''
 
-    def __init__(self, id=0, type='', first_name='', last_name=''):
+    def __init__(self, chat_id=0, type='', first_name='', last_name=''):
 
-        self.id = id
+        self.id = chat_id
         self.type = type
         self.first_name = first_name
         self.last_name = last_name
@@ -427,9 +431,11 @@ class Chat(object):
 
 class Media(object):
 
-    # duration = 0
-    # width = 0
-    # height = 0
+    """
+    Abstract class to combine same attributes
+    """
+
+    __metaclass__ = ABCMeta
 
     def __init__(self, file_id=0, file_size=0, mime_type=''):
         self.file_id = file_id
@@ -440,55 +446,143 @@ class Media(object):
 
         self.file_id = media['file_id']
         self.file_size = media['file_size']
-        self.mime_type = media['mime_type']
 
+        try:
+            self.mime_type = media['mime_type']
+        except KeyError:
+            pass
+        return self
+
+    @staticmethod
+    def get_thumb(media):
+
+        try:
+            thumbnail = PhotoSize()
+            return thumbnail.from_json(media['thumb'])
+        except KeyError:
+            return PhotoSize()
+
+
+class Voice(Media):
+
+    """
+    This object represents a voice note.
+    """
+
+    duration = 0
+
+    def __init__(self):
+        super(Voice, self).__init__()
+
+    def from_json(self, voice):
+
+        super(Voice, self).from_json(voice)
+        try:
+            self.duration = voice['duration']
+        except KeyError:
+            pass
         return self
 
 
-class Audio(Media):
+class Audio(Voice):
 
     """
     This object represents an audio file to be treated as music by the Telegram clients.
     """
 
-    duration = 0
     performer = ''
     title = ''
 
-    # @classmethod
+    def __init__(self):
+        super(Audio, self).__init__()
+
     def from_json(self, audio):
 
-        # cls.file_id = audio['file_id']
         super(Audio, self).from_json(audio)
-        self.duration = audio['duration']
-        self.performer = audio['performer']
-        self.title = audio['title']
-        # cls.mime_type = audio['mime_type']
-        # cls.file_size = audio['file_size']
+        try:
+            self.performer = audio['performer']
+        except KeyError:
+            pass
+        try:
+            self.title = audio['title']
+        except KeyError:
+            pass
 
         return self
 
 
-class PhotoSize(object):
+class PhotoSize(Media):
 
     """
     This object represents one size of a photo or a file / sticker thumbnail
     """
     # attributes:
-    file_id = ''
     width = 0
     height = 0
-    file_size = 0
 
-    def __init__(self, file_id='', width=0, height=0, files_size=0):
-        self.file_id = file_id
-        self.width = width
-        self.height = height
-        self.file_size = files_size
+    def from_json(self, photo_size):
 
-    @classmethod
-    def from_json(cls, photo_size):
-        return cls(photo_size['file_id'], photo_size['width'], photo_size['height'], photo_size['file_size'])
+        super(PhotoSize, self).from_json(photo_size)
+        try:
+            self.width = photo_size['width']
+            self.height = photo_size['height']
+        except KeyError:
+            pass
+
+        return self
+
+
+class Sticker(PhotoSize):
+
+    """
+    This object represents a sticker.
+    """
+
+    thumb = PhotoSize()
+
+    def __init__(self):
+        super(Sticker, self).__init__()
+
+    def from_json(self, sticker):
+
+        super(Sticker, self).from_json(sticker)
+        self.thumb = Media.get_thumb(sticker)
+
+        return self
+
+
+class Document(Sticker):
+
+    """
+    This object represents a general file (as opposed to photos, voice messages and audio files).
+    """
+
+    thumb = PhotoSize()
+    file_name = ''
+
+    def __init__(self):
+        super(Document, self).__init__()
+
+    def from_json(self, document):
+
+        super(Document, self).from_json(document)
+        self.file_name = document['file_name']
+        self.thumb = Media.get_thumb(document)
+
+        return self
+
+
+class Video(Voice, Sticker):
+
+    def __init__(self):
+        Sticker.__init__(self)
+
+    def from_json(self, video):
+
+        Voice.from_json(self, voice=video)
+        Sticker.from_json(self, sticker=video)
+
+        return self
 
 
 class Text(object):
@@ -505,183 +599,6 @@ class Text(object):
     @classmethod
     def from_json(cls, plain_text):
         return cls(str(plain_text))
-
-
-# class Audio(object):
-#
-#     """
-#     This object represents an audio file to be treated as music by the Telegram clients.
-#     """
-#
-#     file_id = ''
-#     duration = 0
-#     performer = ''
-#     title = ''
-#     mime_type = ''
-#     file_size = 0
-#
-#     def __init__(self, file_id='', duration=0, performer='', title='', mime_type='', file_size=0):
-#         self.file_id = file_id
-#         self.duration = duration
-#         self.performer = performer
-#         self.title = title
-#         self.mime_type = mime_type
-#         self.file_size = file_size
-#
-#     @classmethod
-#     def from_json(cls, audio):
-#
-#         cls.file_id = audio['file_id']
-#         cls.duration = audio['duration']
-#         cls.performer = audio['performer']
-#         cls.title = audio['title']
-#         cls.mime_type = audio['mime_type']
-#         cls.file_size = audio['file_size']
-#
-#         return cls
-
-
-class Document(object):
-
-    """
-    This object represents a general file (as opposed to photos, voice messages and audio files).
-    """
-
-    file_id = ''
-    thumb = PhotoSize()
-    file_name = ''
-    mime_type = ''
-    file_size = 0
-
-    def __init__(self, file_id='', thumb=PhotoSize(), file_name='', mime_type='', file_size=0):
-        self.file_id = file_id
-        self.thumb = thumb
-        self.file_name = file_name
-        self.mime_type = mime_type
-        self.file_size = file_size
-
-    @classmethod
-    def from_json(cls, document):
-
-        cls.file_size = document['file_size']
-        cls.file_id = document['file_id']
-        cls.file_name = document['file_name']
-        cls.mime_type = document['mime_type']
-
-        try:
-            """
-            Since thumbnails is available not for every document
-            """
-
-            cls.thumb = document['thumb']
-            return cls
-        finally:
-            return cls
-
-
-class Sticker(object):
-
-    """
-    This object represents a sticker.
-    """
-
-    file_id = ''
-    width = 0
-    height = 0
-    thumb = PhotoSize()
-    file_size = 0
-
-    def __init__(self, file_id='', width=0, height=0, thumb=PhotoSize(), file_size=0):
-        self.file_id = file_id
-        self.width = width
-        self.height = height
-        self.thumb = thumb
-        self.file_size = file_size
-
-    @classmethod
-    def from_json(cls, sticker):
-
-        cls.thumb = PhotoSize.from_json(sticker['thumb'])
-        cls.file_id = sticker['file_id']
-        cls.width = sticker['width']
-        cls.height = sticker['height']
-        cls.file_size = sticker['file_size']
-
-        return cls
-
-
-class Video(object):
-
-    """
-    This object represents a video file.
-    """
-
-    file_id = ''
-    width = 0
-    height = 0
-    duration = 0
-    thumb = PhotoSize()
-    mime_type = ''
-    file_size = 0
-
-    def __init__(self, file_id='', width=0, height=0, duration=0, thumb=PhotoSize(), mime_type='', file_size=0):
-        self.file_id = file_id
-        self.width = width
-        self.height = height
-        self.duration = duration
-        self.thumb = PhotoSize()
-        self.mime_type = mime_type
-        self.file_size = file_size
-
-    @classmethod
-    def from_json(cls, video):
-
-        cls.file_id = video['file_id']
-        cls.width = video['width']
-        cls.height = video['height']
-        cls.duration = video['duration']
-        cls.file_size = video['file_size']
-
-        try:
-            cls.mime_type = video['mime_type']
-        except KeyError:
-            pass
-
-        try:
-            cls.thumb = PhotoSize.from_json(video['thumb'])
-
-            return cls
-
-        finally:
-            return cls
-
-
-class Voice(object):
-
-    """
-    This object represents a voice note.
-    """
-
-    file_id = ''
-    mime_type = ''
-    duration = 0
-    file_size = 0
-
-    def __init__(self, file_id='', mime_type='', duration=0, file_size=0):
-        self.file_id = file_id
-        self.mime_type = mime_type
-        self.duration = duration
-        self.file_size = file_size
-
-    @classmethod
-    def from_json(cls, voice):
-
-        cls.file_id = voice['file_id']
-        cls.mime_type = voice['mime_type']
-        cls.duration = voice['duration']
-        cls.file_size = voice['file_size']
-
-        return cls
 
 
 class Contact(object):
@@ -771,23 +688,23 @@ class Message(object):
     This object represents a message
     """
     # attributes:
-    message_id = 0
-    message_from = User()
-    date = ''
-    chat = Chat()
-    forward_from = User(),
-    forward_date = '',
+#    message_id = 0
+#    message_from = User()
+#    date = ''
+#    chat = Chat()
+#    forward_from = User(),
+#    forward_date = '',
     # reply_to_message = '',
-    text = Text(),
-    audio = Audio(),
-    document = Document(),
-    photo = []
-    sticker = Sticker()
-    video = Video(),
-    voice = Voice(),
+    # text = Text(),
+    # audio = Audio(),
+    # document = Document(),
+    # photo = []
+    # sticker = Sticker()
+    # video = Video(),
+    # voice = Voice(),
     # caption = ''
-    contact = Contact(),
-    location = Location()
+    # contact = Contact(),
+    # location = Location()
 
     # TODO to be added in future
     # new_chat_participant = ''
@@ -823,9 +740,10 @@ class Message(object):
         self.message_from = message_from
         self.date = date
         self.chat = chat
+        self.text = text
         self.forward_from = forward_from
         self.forward_date = forward_date
-#        self.reply_to_message = reply_to_message
+        #self.reply_to_message =
         self.audio = audio
         self.document = document
         self.photo = photo
@@ -835,89 +753,93 @@ class Message(object):
         self.contact = contact
         self.location = location
 
-    @classmethod
-    def from_json(cls, response):
+    def from_json(self, response):
 
         try:
-            cls.message_id = response['message_id']
-            cls.date = response['date']
+            self.message_id = response['message_id']
+            self.date = response['date']
         except KeyError:
             pass
 
         try:
             from_user = User()
-            cls.message_from = from_user.from_json(response['from'])
+            self.message_from = from_user.from_json(response['from'])
         except KeyError:
             pass
 
         try:
             forwarded_from_user = User().from_json(response['forward_from'])
-            cls.forward_from = forwarded_from_user
+            self.forward_from = forwarded_from_user
         except KeyError:
             pass
 
         try:
-            cls.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d %H:%M:%S')
+            self.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d %H:%M:%S')
         except KeyError:
             pass
 
         try:
-            cls.forward_date = dt.fromtimestamp(response['forward_date']).strftime('%Y-%m-%d %H:%M:%S')
+            self.forward_date = dt.fromtimestamp(response['forward_date']).strftime('%Y-%m-%d %H:%M:%S')
         except KeyError:
             pass
 
         try:
-            cls.chat = Chat.from_json(response['chat'])
+            self.chat = Chat.from_json(response['chat'])
         except KeyError:
             pass
 
         try:
-            cls.text = Text.from_json(response['text'])
+            self.text = Text.from_json(response['text'])
         except KeyError:
             pass
 
         try:
-            cls.audio = Audio.from_json(response['audio'])
+            au = Audio()
+            self.audio = au.from_json(response['audio'])
         except KeyError:
             pass
 
         try:
-            cls.document = Document.from_json(response['document'])
+            document = Document()
+            self.document = document.from_json(response['document'])
         except KeyError:
             pass
 
         try:
             for i in response['photo']:
-                cls.photo.append(i)
+                self.photo.append(i)
         except KeyError:
             pass
 
         try:
-            cls.sticker = Sticker.from_json(response['sticker'])
+            sticker = Sticker()
+            self.sticker = sticker.from_json(response['sticker'])
         except KeyError:
             pass
 
         try:
-            cls.video = Video.from_json(response['video'])
+            video = Video()
+            self.video = video.from_json(response['video'])
         except KeyError:
             pass
 
         try:
-            cls.voice = Voice.from_json(response['voice'])
+            voice = Voice()
+            self.voice = voice.from_json(response['voice'])
         except KeyError:
             pass
 
         try:
-            cls.contact = Contact.from_json(response['contact'])
+            self.contact = Contact.from_json(response['contact'])
         except KeyError:
             pass
 
         try:
-            cls.location = Location.from_json(response['location'])
+            self.location = Location.from_json(response['location'])
         except KeyError:
             pass
 
-        return cls
+        return self
 
 
 class Update:
@@ -930,4 +852,6 @@ class Update:
 
     @staticmethod
     def construct(message):
-        return Message.from_json(response=message['message'])
+        message_object = Message()
+
+        return message_object.from_json(response=message['message'])

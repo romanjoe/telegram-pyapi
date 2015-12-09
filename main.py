@@ -12,8 +12,11 @@ def main():
 
     updates = bot.get_updates()
 
-    au = updates.Update.audio
-
+    # sti = updates[0].Update.sticker
+    aud = updates.Update.audio
+    # voi = updates[2].Update.voice
+    # vid = updates[3].Update.video
+    # doc = updates[4].Update.document
 #    username = updates.Update.forward_from.username
 
     print "done"
