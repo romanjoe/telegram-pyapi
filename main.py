@@ -12,6 +12,8 @@ def main():
 
     updates = bot.get_updates()
 
+    au = updates.Update.audio
+
 #    username = updates.Update.forward_from.username
 
     print "done"

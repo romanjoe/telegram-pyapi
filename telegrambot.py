@@ -371,15 +371,16 @@ class User(object):
     """
 
     # attributes:
-    id = 0
-    first_name = ''
-    last_name = ''
-    username = ''
+    # id = 0
+    # first_name = ''
+    # last_name = ''
+    # username = ''
 
-    def __init__(self, id=0, first_name='', last_name=''):
+    def __init__(self, id=0, first_name='', last_name='', username=''):
         self.id = id
         self.first_name = first_name
         self.last_name = last_name
+        self.username = username
 
 #    @classmethod
     def from_json(self, user):
@@ -424,6 +425,50 @@ class Chat(object):
         return cls(chat['id'], chat['type'], chat['first_name'], chat['last_name'])
 
 
+class Media(object):
+
+    # duration = 0
+    # width = 0
+    # height = 0
+
+    def __init__(self, file_id=0, file_size=0, mime_type=''):
+        self.file_id = file_id
+        self.file_size = file_size
+        self.mime_type = mime_type
+
+    def from_json(self, media):
+
+        self.file_id = media['file_id']
+        self.file_size = media['file_size']
+        self.mime_type = media['mime_type']
+
+        return self
+
+
+class Audio(Media):
+
+    """
+    This object represents an audio file to be treated as music by the Telegram clients.
+    """
+
+    duration = 0
+    performer = ''
+    title = ''
+
+    # @classmethod
+    def from_json(self, audio):
+
+        # cls.file_id = audio['file_id']
+        super(Audio, self).from_json(audio)
+        self.duration = audio['duration']
+        self.performer = audio['performer']
+        self.title = audio['title']
+        # cls.mime_type = audio['mime_type']
+        # cls.file_size = audio['file_size']
+
+        return self
+
+
 class PhotoSize(object):
 
     """
@@ -462,38 +507,38 @@ class Text(object):
         return cls(str(plain_text))
 
 
-class Audio(object):
-
-    """
-    This object represents an audio file to be treated as music by the Telegram clients.
-    """
-
-    file_id = ''
-    duration = 0
-    performer = ''
-    title = ''
-    mime_type = ''
-    file_size = 0
-
-    def __init__(self, file_id='', duration=0, performer='', title='', mime_type='', file_size=0):
-        self.file_id = file_id
-        self.duration = duration
-        self.performer = performer
-        self.title = title
-        self.mime_type = mime_type
-        self.file_size = file_size
-
-    @classmethod
-    def from_json(cls, audio):
-
-        cls.file_id = audio['file_id']
-        cls.duration = audio['duration']
-        cls.performer = audio['performer']
-        cls.title = audio['title']
-        cls.mime_type = audio['mime_type']
-        cls.file_size = audio['file_size']
-
-        return cls
+# class Audio(object):
+#
+#     """
+#     This object represents an audio file to be treated as music by the Telegram clients.
+#     """
+#
+#     file_id = ''
+#     duration = 0
+#     performer = ''
+#     title = ''
+#     mime_type = ''
+#     file_size = 0
+#
+#     def __init__(self, file_id='', duration=0, performer='', title='', mime_type='', file_size=0):
+#         self.file_id = file_id
+#         self.duration = duration
+#         self.performer = performer
+#         self.title = title
+#         self.mime_type = mime_type
+#         self.file_size = file_size
+#
+#     @classmethod
+#     def from_json(cls, audio):
+#
+#         cls.file_id = audio['file_id']
+#         cls.duration = audio['duration']
+#         cls.performer = audio['performer']
+#         cls.title = audio['title']
+#         cls.mime_type = audio['mime_type']
+#         cls.file_size = audio['file_size']
+#
+#         return cls
 
 
 class Document(object):
