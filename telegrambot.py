@@ -1,8 +1,9 @@
-import requests
-import time
 import exceptions
-from datetime import datetime as dt
+import time
 from abc import ABCMeta
+from datetime import datetime as dt
+
+import requests
 
 DEBUG = False
 
@@ -26,13 +27,13 @@ class Telegram(object):
         event = '%s >> %s' % (time.ctime(), text)
         print event
 
-    def post_request(self, data, api_call):
+    def post_request(self, data, files, api_call):
 
         if DEBUG:
             Telegram.log_event('Sending json %s to %s' % (data, data['chat_id'],))
             # TODO: make more precise function fro logging
 
-        response = requests.post(self.url_token + api_call, data=data)
+        response = requests.post(self.url_token + api_call, files=files, data=data)
 
         if not response.status_code == 200:
             return False
@@ -78,7 +79,7 @@ class TelegramBot(Telegram):
             self.log_event('Sending getMe to check token is correct')
 
         data = {}
-        return self.post_request(data, self.api['getMe'])
+        return self.post_request(data, '', self.api['getMe'])
 
     def send_message(self, text):
 
@@ -93,7 +94,7 @@ class TelegramBot(Telegram):
             self.log_event('Sending text to %s: %s' % (self.chat_id, text))
 
         data = {'chat_id': self.chat_id, 'text': text}
-        return self.post_request(data, self.api['sendMessage'])
+        return self.post_request(data, '', self.api['sendMessage'])
 
     def forward_message(self, chat_id, from_chat_id, message_id):
 
@@ -109,10 +110,12 @@ class TelegramBot(Telegram):
         """
 
         data = {'chat_id': chat_id, 'from_chat_id': from_chat_id, 'message_id': message_id}
-        return self.post_request(data, self.api['forwardMessage'])
+        return self.post_request(data, '', self.api['forwardMessage'])
 
     def send_photo(self, chat_id, photo, caption='',
                    reply_to_message_id='', reply_markup=''):
+
+        # TODO make it possible to pass images with url in form like urllib.urlopen(image_url).read()
 
         """
         Send photo by id (already uploaded to telegram) or as object of this type
@@ -128,11 +131,13 @@ class TelegramBot(Telegram):
         :return:
         """
 
-        data = {'chat_id': chat_id, 'photo': photo,
+        data = {'chat_id': chat_id, # 'photo': photo,
                 'caption': caption, 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
-        return self.post_request(data, self.api['sendPhoto'])
+        files = {'photo': (photo, open(photo, 'rb'))}
+
+        return self.post_request(data, files, self.api['sendPhoto'])
 
     def send_audio(self, chat_id, audio, duration='',
                    performer='', title='', reply_to_message_id='',
@@ -154,12 +159,13 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
-        data = {'chat_id': chat_id, 'audio': audio,
+        data = {'chat_id': chat_id,  # 'audio': audio,
                 'duration': duration, 'performer': performer,
                 'title': title, 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
+        files = {'audio': (open(audio, 'rb'))}
 
-        return self.post_request(data, self.api['sendAudio'])
+        return self.post_request(data, files, self.api['sendAudio'])
 
     def send_document(self, chat_id, document, reply_to_message_id, reply_markup):
         """
@@ -175,11 +181,12 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
-        data = {'chat_id': chat_id, 'document': document,
+        data = {'chat_id': chat_id,  # 'document': document,
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
+        files = {'document': (document, open(document, 'rb'))}
 
-        return self.post_request(data, self.api['sendDocument'])
+        return self.post_request(data, files, self.api['sendDocument'])
 
     def send_sticker(self, chat_id, sticker, reply_to_message_id, reply_markup):
         """
@@ -199,7 +206,7 @@ class TelegramBot(Telegram):
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
-        return self.post_request(data, self.api['sendSticker'])
+        return self.post_request(data, '', self.api['sendSticker'])
 
     def send_video(self, chat_id, video, duration='',
                    caption='', reply_to_message_id='',
@@ -220,12 +227,13 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
-        data = {'chat_id': chat_id, 'video': video,
+        data = {'chat_id': chat_id,  # 'video': video,
                 'duration': duration, 'caption': caption,
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
+        files = {'video': (video, open(video, 'rb'))}
 
-        return self.post_request(data, self.api['sendVideo'])
+        return self.post_request(data, files, self.api['sendVideo'])
 
     def send_voice(self, chat_id, voice, duration='',
                    reply_to_message_id='', reply_markup=''):
@@ -244,11 +252,13 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
-        data = {'chat_id': chat_id, 'voice': voice,
+        data = {'chat_id': chat_id,  # 'voice': voice,
                 'duration': duration, 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
-        return self.post_request(data, self.api['sendVoice'])
+        files = {'voice': (voice, open(voice, 'rb'))}
+
+        return self.post_request(data, files, self.api['sendVoice'])
 
     def send_location(self, chat_id, latitude, longitude,
                       reply_to_message_id='', reply_markup=''):
@@ -271,7 +281,7 @@ class TelegramBot(Telegram):
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
-        return self.post_request(data, self.api['sendLocation'])
+        return self.post_request(data, '', self.api['sendLocation'])
 
     def send_chat_action(self, chat_id, action):
 
@@ -291,7 +301,7 @@ class TelegramBot(Telegram):
         """
 
         data = {'chat_id': chat_id, 'action': action}
-        return self.post_request(data, self.api['sendChatAction'])
+        return self.post_request(data, '', self.api['sendChatAction'])
 
     def get_updates(self, limit=1):
 
@@ -306,7 +316,7 @@ class TelegramBot(Telegram):
         """
 
         data = {'offset': self.offset + 1, 'limit': limit, 'timeout': 0}
-        updates = self.post_request(data, self.api['getUpdates'])
+        updates = self.post_request(data, '', self.api['getUpdates'])
 
         if limit == 1:
             try:
@@ -345,28 +355,12 @@ class TelegramBot(Telegram):
         """
 
         data = {'file_id': file_id}
-        message = self.post_request(data, self.api['getFile'])
+        message = self.post_request(data, '', self.api['getFile'])
         file_path = message['file_path']
 
         download_link = ('https://api.telegram.org/file/bot' + self.token + "/" + file_path)
 
         return download_link
-
-    def get_last_update(self, limit=1):
-
-        """
-        This method for receiving array of updates
-        Link for description: https://core.telegram.org/bots/api#getupdates
-
-        :parameter limit: sets maximum amount of messages to request. default = 1
-        :return: An Array of Update json objects is returned https://core.telegram.org/bots/api#update
-        """
-
-        data = {'offset': self.offset + 1, 'limit': limit, 'timeout': 0}
-
-        req = self.post_request(data, self.api['getUpdates'])
-
-        return req[0]['message']['text']
 
 
 class User(object):
@@ -687,25 +681,6 @@ class Message(object):
     """
     This object represents a message
     """
-    # attributes:
-#    message_id = 0
-#    message_from = User()
-#    date = ''
-#    chat = Chat()
-#    forward_from = User(),
-#    forward_date = '',
-    # reply_to_message = '',
-    # text = Text(),
-    # audio = Audio(),
-    # document = Document(),
-    # photo = []
-    # sticker = Sticker()
-    # video = Video(),
-    # voice = Voice(),
-    # caption = ''
-    # contact = Contact(),
-    # location = Location()
-
     # TODO to be added in future
     # new_chat_participant = ''
     # left_chat_participant = ''
@@ -732,7 +707,7 @@ class Message(object):
                  sticker=Sticker(),
                  video=Video(),
                  voice=Voice(),
-                 # caption = '',
+                 caption='',
                  contact=Contact(),
                  location=Location()
                  ):
@@ -743,13 +718,14 @@ class Message(object):
         self.text = text
         self.forward_from = forward_from
         self.forward_date = forward_date
-        #self.reply_to_message =
+        # self.reply_to_message =
         self.audio = audio
         self.document = document
         self.photo = photo
         self.sticker = sticker
         self.video = video
         self.voice = voice
+        self.caption = caption
         self.contact = contact
         self.location = location
 
@@ -826,6 +802,11 @@ class Message(object):
         try:
             voice = Voice()
             self.voice = voice.from_json(response['voice'])
+        except KeyError:
+            pass
+
+        try:
+            self.caption = Text.from_json(response['caption'])
         except KeyError:
             pass
 
