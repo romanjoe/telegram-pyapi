@@ -62,7 +62,7 @@ class TelegramBot(Telegram):
            'sendVideo': '/sendVideo',
            'sendVoice': '/sendVoice',
            'sendLocation': '/sendLocation',
-           'sendChatAction': '/getUserProfilePhotos',
+           'sendChatAction': '/sendChatAction',
            'getUpdates': '/getUpdates',
            'setWebhook': '/setWebhook',
            'getFile': '/getFile'}
@@ -130,9 +130,10 @@ class TelegramBot(Telegram):
         :param reply_markup: optional
         :return:
         """
+        self.send_chat_action(self.chat_id, 'upload_photo')
 
-        data = {'chat_id': chat_id, # 'photo': photo,
-                'caption': caption, 'reply_to_message_id': reply_to_message_id,
+        data = {'chat_id': chat_id, 'caption': caption,
+                'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
         files = {'photo': (photo, open(photo, 'rb'))}
@@ -158,10 +159,11 @@ class TelegramBot(Telegram):
         :param reply_markup: optional
         :return: Message json object with sent message
         """
+        self.send_chat_action(self.chat_id, 'upload_audio')
 
-        data = {'chat_id': chat_id,  # 'audio': audio,
-                'duration': duration, 'performer': performer,
-                'title': title, 'reply_to_message_id': reply_to_message_id,
+        data = {'chat_id': chat_id, 'duration': duration,
+                'performer': performer, 'title': title,
+                'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
         files = {'audio': (open(audio, 'rb'))}
 
@@ -181,6 +183,8 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
+        self.send_chat_action(self.chat_id, 'upload_document')
+
         data = {'chat_id': chat_id,  # 'document': document,
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
@@ -193,7 +197,7 @@ class TelegramBot(Telegram):
         Send sticker by id (already uploaded to telegram) or as object of this type
         https://core.telegram.org/bots/api#inputfile
 
-        APIdoc URL: https://core.telegram.org/bots/api#senddocument
+        APIdoc URL: https://core.telegram.org/bots/api#sendsticker
 
         :param chat_id: must
         :param sticker: must
@@ -208,7 +212,7 @@ class TelegramBot(Telegram):
 
         return self.post_request(data, '', self.api['sendSticker'])
 
-    def send_video(self, chat_id, video, duration='',
+    def send_video(self, chat_id, video, duration=0,
                    caption='', reply_to_message_id='',
                    reply_markup=''):
 
@@ -227,8 +231,9 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
-        data = {'chat_id': chat_id,  # 'video': video,
-                'duration': duration, 'caption': caption,
+        self.send_chat_action(self.chat_id, 'upload_video')
+
+        data = {'chat_id': chat_id, 'duration': duration, 'caption': caption,
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
         files = {'video': (video, open(video, 'rb'))}
@@ -252,8 +257,10 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
-        data = {'chat_id': chat_id,  # 'voice': voice,
-                'duration': duration, 'reply_to_message_id': reply_to_message_id,
+        self.send_chat_action(self.chat_id, 'record_audio')
+
+        data = {'chat_id': chat_id, 'duration': duration,
+                'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
         files = {'voice': (voice, open(voice, 'rb'))}
@@ -276,6 +283,8 @@ class TelegramBot(Telegram):
         :param reply_markup: optional
         :return: Message json object with sent message
         """
+
+        self.send_chat_action(self.chat_id, 'find_location')
 
         data = {'chat_id': chat_id, 'latitude': latitude, 'longitude': longitude,
                 'reply_to_message_id': reply_to_message_id,
@@ -592,6 +601,7 @@ class Text(object):
 
     @classmethod
     def from_json(cls, plain_text):
+        # TODO make is possible to process russian and ukrainial letters
         return cls(str(plain_text))
 
 
@@ -643,13 +653,13 @@ class Location(object):
         self.longitude = longitude
         self.latitude = latitude
 
-    @classmethod
-    def from_json(cls, location):
+    #@classmethod
+    def from_json(self, location):
 
-        cls.longitude = location['longitude']
-        cls.latitude = location['latitude']
+        self.longitude = location['longitude']
+        self.latitude = location['latitude']
 
-        return cls
+        return self
 
 
 class UserProfilePhotos(object):
@@ -733,97 +743,114 @@ class Message(object):
 
         try:
             self.message_id = response['message_id']
+        except (KeyError, TypeError):
+            pass
+
+        try:
             self.date = response['date']
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             from_user = User()
             self.message_from = from_user.from_json(response['from'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             forwarded_from_user = User().from_json(response['forward_from'])
             self.forward_from = forwarded_from_user
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             self.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d %H:%M:%S')
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             self.forward_date = dt.fromtimestamp(response['forward_date']).strftime('%Y-%m-%d %H:%M:%S')
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             self.chat = Chat.from_json(response['chat'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             self.text = Text.from_json(response['text'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             au = Audio()
             self.audio = au.from_json(response['audio'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             document = Document()
             self.document = document.from_json(response['document'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             for i in response['photo']:
                 self.photo.append(i)
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             sticker = Sticker()
             self.sticker = sticker.from_json(response['sticker'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             video = Video()
             self.video = video.from_json(response['video'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             voice = Voice()
             self.voice = voice.from_json(response['voice'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             self.caption = Text.from_json(response['caption'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
             self.contact = Contact.from_json(response['contact'])
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         try:
-            self.location = Location.from_json(response['location'])
-        except KeyError:
+            location = Location()
+            self.location = location.from_json(response['location'])
+        except (KeyError, TypeError):
             pass
 
         return self
 
 
-class Update:
+class Response(object):
+
+    def __init__(self, data):
+        self.Response = self.construct(data)
+
+    @staticmethod
+    def construct(data):
+        data_object = Message()
+
+        return data_object.from_json(response=data)
+
+
+class Update(object):
 
     raw_update = ''
 
