@@ -30,10 +30,12 @@ class Telegram(object):
     def post_request(self, data, files, api_call):
 
         if DEBUG:
-            Telegram.log_event('Sending json %s to %s' % (data, data['chat_id'],))
+            Telegram.log_event('Sending json %s to \
+             %s' % (data, data['chat_id'],))
             # TODO: make more precise function fro logging
 
-        response = requests.post(self.url_token + api_call, files=files, data=data)
+        response = requests.post(self.url_token +
+                                 api_call, files=files, data=data)
 
         if not response.status_code == 200:
             return False
@@ -57,7 +59,7 @@ class TelegramBot(Telegram):
            'forwardMessage': '/forwardMessage',
            'sendPhoto': '/sendPhoto',
            'sendAudio': '/sendAudio',
-           'sendDocument' : '/sendDocument',
+           'sendDocument': '/sendDocument',
            'sendSticker': '/sendSticker',
            'sendVideo': '/sendVideo',
            'sendVoice': '/sendVoice',
@@ -88,7 +90,8 @@ class TelegramBot(Telegram):
         APIdoc URL: https://core.telegram.org/bots/api#sendmessage
 
         :param text: message to send
-        :return: Message json object type - https://core.telegram.org/bots/api#message
+        :return: Message json object type
+        refference - https://core.telegram.org/bots/api#message
         """
         if DEBUG:
             self.log_event('Sending text to %s: %s' % (self.chat_id, text))
@@ -109,17 +112,19 @@ class TelegramBot(Telegram):
         :return: Message json object with sent message
         """
 
-        data = {'chat_id': chat_id, 'from_chat_id': from_chat_id, 'message_id': message_id}
+        data = {'chat_id': chat_id, 'from_chat_id': from_chat_id,
+                'message_id': message_id}
         return self.post_request(data, '', self.api['forwardMessage'])
 
     def send_photo(self, chat_id, photo, caption='',
                    reply_to_message_id='', reply_markup=''):
 
-        # TODO make it possible to pass images with url in form like urllib.urlopen(image_url).read()
+        # TODO make it possible to pass images with url in form
+        # like urllib.urlopen(image_url).read()
 
         """
-        Send photo by id (already uploaded to telegram) or as object of this type
-        https://core.telegram.org/bots/api#inputfile
+        Send photo by id (already uploaded to telegram) or as object of this
+        type https://core.telegram.org/bots/api#inputfile
 
         APIdoc URL: https://core.telegram.org/bots/api#sendphoto
 
@@ -145,8 +150,8 @@ class TelegramBot(Telegram):
                    reply_markup=''):
 
         """
-        Send audio by id (already uploaded to telegram) or as object of this type
-        https://core.telegram.org/bots/api#inputfile
+        Send audio by id (already uploaded to telegram) or as object of this
+        type https://core.telegram.org/bots/api#inputfile
 
         APIdoc URL: https://core.telegram.org/bots/api#sendaudio
 
@@ -169,10 +174,11 @@ class TelegramBot(Telegram):
 
         return self.post_request(data, files, self.api['sendAudio'])
 
-    def send_document(self, chat_id, document, reply_to_message_id, reply_markup):
+    def send_document(self, chat_id, document, reply_to_message_id,
+                      reply_markup):
         """
-        Send document by id (already uploaded to telegram) or as object of this type
-        https://core.telegram.org/bots/api#inputfile
+        Send document by id (already uploaded to telegram) or as object of this
+        type https://core.telegram.org/bots/api#inputfile
 
         APIdoc URL: https://core.telegram.org/bots/api#senddocument
 
@@ -192,10 +198,11 @@ class TelegramBot(Telegram):
 
         return self.post_request(data, files, self.api['sendDocument'])
 
-    def send_sticker(self, chat_id, sticker, reply_to_message_id, reply_markup):
+    def send_sticker(self, chat_id, sticker, reply_to_message_id,
+                     reply_markup):
         """
-        Send sticker by id (already uploaded to telegram) or as object of this type
-        https://core.telegram.org/bots/api#inputfile
+        Send sticker by id (already uploaded to telegram) or as object of this
+        type https://core.telegram.org/bots/api#inputfile
 
         APIdoc URL: https://core.telegram.org/bots/api#sendsticker
 
@@ -217,8 +224,8 @@ class TelegramBot(Telegram):
                    reply_markup=''):
 
         """
-        Send video by id (already uploaded to telegram) or as object of this type
-        https://core.telegram.org/bots/api#inputfile
+        Send video by id (already uploaded to telegram) or as object of this
+        type https://core.telegram.org/bots/api#inputfile
 
         APIdoc URL: https://core.telegram.org/bots/api#sendvideo
 
@@ -244,8 +251,8 @@ class TelegramBot(Telegram):
                    reply_to_message_id='', reply_markup=''):
 
         """
-        Send voice by id (already uploaded to telegram) or as object of this type
-        https://core.telegram.org/bots/api#inputfile
+        Send voice by id (already uploaded to telegram) or as object of this
+        type https://core.telegram.org/bots/api#inputfile
 
         APIdoc URL: https://core.telegram.org/bots/api#sendvoice
 
@@ -271,8 +278,8 @@ class TelegramBot(Telegram):
                       reply_to_message_id='', reply_markup=''):
 
         """
-        Send latitude by id (already uploaded to telegram) or as object of this type
-        https://core.telegram.org/bots/api#inputfile
+        Send latitude by id (already uploaded to telegram) or as object of this
+        type https://core.telegram.org/bots/api#inputfile
 
         APIdoc URL: https://core.telegram.org/bots/api#sendlocation
 
@@ -286,7 +293,8 @@ class TelegramBot(Telegram):
 
         self.send_chat_action(self.chat_id, 'find_location')
 
-        data = {'chat_id': chat_id, 'latitude': latitude, 'longitude': longitude,
+        data = {'chat_id': chat_id, 'latitude': latitude,
+                'longitude': longitude,
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
@@ -295,8 +303,8 @@ class TelegramBot(Telegram):
     def send_chat_action(self, chat_id, action):
 
         """
-        This method can tell bot what to do if he need some time to process request,
-        for example to record and upload video
+        This method can tell bot what to do if he need some time to process
+        request, for example to record and upload video
 
         :param chat_id:
         :param action: Types of action to broadcast:
@@ -318,9 +326,12 @@ class TelegramBot(Telegram):
         This method for receiving array of updates
         Link for description: https://core.telegram.org/bots/api#getupdates
 
-        :parameter limit: sets maximum amount of messages to request. default = 1
-        :return: If limit parameter equals 1, as in default case - single update_object returned
-                 if limit parameter is bigger than one, then an Array of updates_objects returned
+        :parameter limit: sets maximum amount of messages to request.
+                          default = 1
+        :return: If limit parameter equals 1, as in default case -
+                 single update_object returned
+                 if limit parameter is bigger than one, then an Array of
+                 updates_objects returned
                  https://core.telegram.org/bots/api#update
         """
 
@@ -350,9 +361,11 @@ class TelegramBot(Telegram):
             return array_of_updates_objects
 
         elif limit == 0:
-            raise exceptions.ValueError("[MESSAGE] Cant retrieve 0 updates, please, specify value bigger than 1"
+            raise exceptions.ValueError("[MESSAGE] Cant retrieve 0 updates, \
+                                         please, specify value bigger than 1"
                                         " to get_updates() method or leave it"
-                                        " blank to retrieve first of unread updates")
+                                        " blank to retrieve first of unread \
+                                        updates")
 
     def get_file(self, file_id):
 
@@ -367,7 +380,8 @@ class TelegramBot(Telegram):
         message = self.post_request(data, '', self.api['getFile'])
         file_path = message['file_path']
 
-        download_link = ('https://api.telegram.org/file/bot' + self.token + "/" + file_path)
+        download_link = ('https://api.telegram.org/file/bot' +
+                         self.token + "/" + file_path)
 
         return download_link
 
@@ -429,7 +443,8 @@ class Chat(object):
 
     @classmethod
     def from_json(cls, chat):
-        return cls(chat['id'], chat['type'], chat['first_name'], chat['last_name'])
+        return cls(chat['id'], chat['type'], chat['first_name'],
+                   chat['last_name'])
 
 
 class Media(object):
@@ -490,7 +505,8 @@ class Voice(Media):
 class Audio(Voice):
 
     """
-    This object represents an audio file to be treated as music by the Telegram clients.
+    This object represents an audio file to be treated as music
+    by the Telegram clients.
     """
 
     performer = ''
@@ -557,7 +573,8 @@ class Sticker(PhotoSize):
 class Document(Sticker):
 
     """
-    This object represents a general file (as opposed to photos, voice messages and audio files).
+    This object represents a general file (as opposed to photos, voice messages
+    and audio files).
     """
 
     thumb = PhotoSize()
@@ -616,7 +633,8 @@ class Contact(object):
     last_name = ''
     user_id = 0
 
-    def __init__(self, phone_number='', first_name='', last_name='', user_id=0):
+    def __init__(self, phone_number='', first_name='',
+                 last_name='', user_id=0):
         self.phone_number = phone_number
         self.first_name = first_name
         self.last_name = last_name
@@ -653,7 +671,6 @@ class Location(object):
         self.longitude = longitude
         self.latitude = latitude
 
-    #@classmethod
     def from_json(self, location):
 
         self.longitude = location['longitude']
@@ -676,7 +693,8 @@ class File(object):
 
     """
     This object represents a file ready to be downloaded.
-    The file can be downloaded via the link https://api.telegram.org/file/bot<token>/<file_path>.
+    The file can be downloaded via the link
+    https://api.telegram.org/file/bot<token>/<file_path>.
     It is guaranteed that the link will be valid for at least 1 hour.
     When the link expires, a new one can be requested by calling getFile.
     """
@@ -764,12 +782,14 @@ class Message(object):
             pass
 
         try:
-            self.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d %H:%M:%S')
+            self.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d \
+                                                                     %H:%M:%S')
         except (KeyError, TypeError):
             pass
 
         try:
-            self.forward_date = dt.fromtimestamp(response['forward_date']).strftime('%Y-%m-%d %H:%M:%S')
+            self.forward_date = dt.fromtimestamp(
+                response['forward_date']).strftime('%Y-%m-%d %H:%M:%S')
         except (KeyError, TypeError):
             pass
 
