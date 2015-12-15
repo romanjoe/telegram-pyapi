@@ -463,8 +463,11 @@ class Media(object):
     def from_json(self, media):
 
         self.file_id = media['file_id']
-        self.file_size = media['file_size']
 
+        try:
+            self.file_size = media['file_size']
+        except KeyError:
+            pass
         try:
             self.mime_type = media['mime_type']
         except KeyError:
