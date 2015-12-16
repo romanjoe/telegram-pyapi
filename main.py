@@ -133,8 +133,6 @@ def main():
                        "Latitude: " + str(location.latitude))
             except (AttributeError, IndexError):
                 pass
-            else:
-                pass
 
             try:
                 sticker = 'BQADAgADQAADyIsGAAGMQCvHaYLU_AI'
@@ -161,6 +159,8 @@ def main():
 
             except (AttributeError, IndexError):
                 pass
+        else:
+            pass
     except AttributeError:
         pass
 
