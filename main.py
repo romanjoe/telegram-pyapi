@@ -156,7 +156,7 @@ def main():
                 print "Sticker thumbnail " + str(resolution)
                 print link
                 print "========================== WIN! ============================="
-
+                exit(0)
             except (AttributeError, IndexError):
                 pass
         else:
