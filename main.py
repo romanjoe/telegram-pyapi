@@ -19,18 +19,17 @@ def main():
     resp = bot.get_updates()
 
     try:
-        if resp.Update.text.text_message == '/test':
+        if resp.text.text_message == '/test':
             try:
                 hello = 'test/hello.jpg'
                 resp = bot.send_photo(bot.chat_id, hello, caption='Hello \n it\'s me', reply_markup='',
                                       reply_to_message_id='')
-                resp_obj = tb.Response.construct(resp)
 
                 available_thumbnail_sizes_array = []
 
                 result = {}
 
-                for photo in resp_obj.photo:
+                for photo in resp.photo:
                     available_thumbnail_sizes_array.append(photo)
 
                 for size in available_thumbnail_sizes_array:
@@ -50,10 +49,7 @@ def main():
                 music = 'test/sample_audio.mp3'
                 bot.send_chat_action(bot.chat_id, 'upload_audio')
                 resp = bot.send_audio(bot.chat_id, music, performer='Nu Gravity', title='People', reply_markup='')
-
-                resp_obj = tb.Response.construct(resp)
-
-                audio = resp_obj.audio
+                audio = resp.audio
 
                 print ("========== Parse response after sendAudio ================\n" +
                        "Audio file download link: " + str(bot.get_file(audio.file_id)) + "\n" +
@@ -71,10 +67,7 @@ def main():
                                       caption='Have some fun!',
                                       reply_markup='', reply_to_message_id='',
                                       duration=45)
-
-                resp_obj = tb.Response.construct(resp)
-
-                video = resp_obj.video
+                video = resp.video
 
                 print ("========== Parse response after sendAudio ================\n" +
                        "Video file download link: " + str(bot.get_file(video.file_id)) + "\n" +
@@ -89,10 +82,7 @@ def main():
             try:
                 document = 'test/LICENSE.pdf'
                 resp = bot.send_document(bot.chat_id, document, '', '')
-
-                resp_obj = tb.Response.construct(resp)
-
-                document = resp_obj.document
+                document = resp.document
 
                 print ("========== Parse response after sendDocument ================\n" +
                        "Document download link: " + str(bot.get_file(document.file_id)) + "\n" +
@@ -106,10 +96,7 @@ def main():
             try:
                 voice = 'test/voice_record.mp3'
                 resp = bot.send_voice(bot.chat_id, voice, duration=20, reply_markup='', reply_to_message_id='')
-
-                resp_obj = tb.Response.construct(resp)
-
-                voice = resp_obj.voice
+                voice = resp.voice
 
                 print ("========== Parse response after sendVoice ================\n" +
                        "Voice file download link: " + str(bot.get_file(voice.file_id)) + "\n" +
@@ -124,9 +111,7 @@ def main():
                 resp = bot.send_location(bot.chat_id, longitude=float(-21.90981746), latitude=float(64.54314655),
                                          reply_to_message_id='', reply_markup='')
 
-                resp_obj = tb.Response.construct(resp)
-
-                location = resp_obj.location
+                location = resp.location
 
                 print ("========== Parse response after sendLocation ================\n" +
                        "Longitude = " + str(location.longitude) + "\n" +
@@ -135,12 +120,9 @@ def main():
                 pass
 
             try:
-                sticker = 'BQADAgADQAADyIsGAAGMQCvHaYLU_AI'
-                resp = bot.send_sticker(bot.chat_id, sticker, '', '')
-
-                resp_obj = tb.Response.construct(resp)
-
-                sticker = resp_obj.sticker
+                sticker_id = 'BQADAgADQAADyIsGAAGMQCvHaYLU_AI'
+                resp = bot.send_sticker(bot.chat_id, sticker_id, '', '')
+                sticker = resp.sticker
 
                 print ("========== Parse response after sendSticker ================\n" +
                        "Sticker download link: " + str(bot.get_file(sticker.file_id)) + "\n" +

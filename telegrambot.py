@@ -32,7 +32,7 @@ class Telegram(object):
         if DEBUG:
             Telegram.log_event('Sending json %s to \
              %s' % (data, data['chat_id'],))
-            # TODO: make more precise function fro logging
+            # TODO: make more precise function for logging
 
         response = requests.post(self.url_token +
                                  api_call, files=files, data=data)
@@ -43,6 +43,20 @@ class Telegram(object):
         # TODO add raise exceptions for other codes
 
         return response.json()['result']
+
+    @staticmethod
+    def construct(message):
+        message_object = Message()
+        message_object.raw_message = message
+        #  try to access ['message'] field, if it is present, then
+        #  this is an update, else it is a response to one of the
+        #  post requests
+        try:
+            return message_object.from_json(response=message['message'])
+        except KeyError:
+            return message_object.from_json(response=message)
+        except TypeError:
+            print "++++++++ TypeError occurred"
 
 
 class TelegramBot(Telegram):
@@ -97,7 +111,8 @@ class TelegramBot(Telegram):
             self.log_event('Sending text to %s: %s' % (self.chat_id, text))
 
         data = {'chat_id': self.chat_id, 'text': text}
-        return self.post_request(data, '', self.api['sendMessage'])
+        response = self.post_request(data, '', self.api['sendMessage'])
+        return self.construct(response)
 
     def forward_message(self, chat_id, from_chat_id, message_id):
 
@@ -114,7 +129,8 @@ class TelegramBot(Telegram):
 
         data = {'chat_id': chat_id, 'from_chat_id': from_chat_id,
                 'message_id': message_id}
-        return self.post_request(data, '', self.api['forwardMessage'])
+        response = self.post_request(data, '', self.api['forwardMessage'])
+        return self.construct(response)
 
     def send_photo(self, chat_id, photo, caption='',
                    reply_to_message_id='', reply_markup=''):
@@ -133,7 +149,7 @@ class TelegramBot(Telegram):
         :param caption: optional
         :param reply_to_message_id: optional
         :param reply_markup: optional
-        :return:
+        :return: constructed object of type Message
         """
         self.send_chat_action(self.chat_id, 'upload_photo')
 
@@ -143,7 +159,8 @@ class TelegramBot(Telegram):
 
         files = {'photo': (photo, open(photo, 'rb'))}
 
-        return self.post_request(data, files, self.api['sendPhoto'])
+        response = self.post_request(data, files, self.api['sendPhoto'])
+        return self.construct(response)
 
     def send_audio(self, chat_id, audio, duration='',
                    performer='', title='', reply_to_message_id='',
@@ -172,7 +189,8 @@ class TelegramBot(Telegram):
                 'reply_markup': reply_markup}
         files = {'audio': (open(audio, 'rb'))}
 
-        return self.post_request(data, files, self.api['sendAudio'])
+        response = self.post_request(data, files, self.api['sendAudio'])
+        return self.construct(response)
 
     def send_document(self, chat_id, document, reply_to_message_id,
                       reply_markup):
@@ -196,7 +214,8 @@ class TelegramBot(Telegram):
                 'reply_markup': reply_markup}
         files = {'document': (document, open(document, 'rb'))}
 
-        return self.post_request(data, files, self.api['sendDocument'])
+        response = self.post_request(data, files, self.api['sendDocument'])
+        return self.construct(response)
 
     def send_sticker(self, chat_id, sticker, reply_to_message_id,
                      reply_markup):
@@ -217,7 +236,8 @@ class TelegramBot(Telegram):
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
-        return self.post_request(data, '', self.api['sendSticker'])
+        response = self.post_request(data, '', self.api['sendSticker'])
+        return self.construct(response)
 
     def send_video(self, chat_id, video, duration=0,
                    caption='', reply_to_message_id='',
@@ -245,7 +265,8 @@ class TelegramBot(Telegram):
                 'reply_markup': reply_markup}
         files = {'video': (video, open(video, 'rb'))}
 
-        return self.post_request(data, files, self.api['sendVideo'])
+        response = self.post_request(data, files, self.api['sendVideo'])
+        return self.construct(response)
 
     def send_voice(self, chat_id, voice, duration='',
                    reply_to_message_id='', reply_markup=''):
@@ -271,8 +292,8 @@ class TelegramBot(Telegram):
                 'reply_markup': reply_markup}
 
         files = {'voice': (voice, open(voice, 'rb'))}
-
-        return self.post_request(data, files, self.api['sendVoice'])
+        response = self.post_request(data, files, self.api['sendVoice'])
+        return self.construct(response)
 
     def send_location(self, chat_id, latitude, longitude,
                       reply_to_message_id='', reply_markup=''):
@@ -298,7 +319,8 @@ class TelegramBot(Telegram):
                 'reply_to_message_id': reply_to_message_id,
                 'reply_markup': reply_markup}
 
-        return self.post_request(data, '', self.api['sendLocation'])
+        response = self.post_request(data, '', self.api['sendLocation'])
+        return self.construct(response)
 
     def send_chat_action(self, chat_id, action):
 
@@ -340,7 +362,11 @@ class TelegramBot(Telegram):
 
         if limit == 1:
             try:
-                single_update_object = Update(updates[0])
+                single_update_object = self.construct(updates[0])
+                #
+                # print(single_update_object)
+                # print "+++++" + str(updates[0])
+
                 self.offset = updates[0]['update_id']
                 self.chat_id = updates[0]['message']['chat']['id']
 
@@ -349,23 +375,23 @@ class TelegramBot(Telegram):
             except IndexError:
                 return []
 
-        elif limit > 1:
-
-            array_of_updates_objects = []
-
-            for update in updates:
-                array_of_updates_objects.append(Update(update))
-                self.offset = update['update_id']
-                self.chat_id = update['message']['chat']['id']
-
-            return array_of_updates_objects
-
-        elif limit == 0:
-            raise exceptions.ValueError("[MESSAGE] Cant retrieve 0 updates, \
-                                         please, specify value bigger than 1"
-                                        " to get_updates() method or leave it"
-                                        " blank to retrieve first of unread \
-                                        updates")
+        # elif limit > 1:
+        #
+        #     array_of_updates_objects = []
+        #
+        #     for update in updates:
+        #         array_of_updates_objects.append(Update(update))
+        #         self.offset = update['update_id']
+        #         self.chat_id = update['message']['chat']['id']
+        #
+        #     return array_of_updates_objects
+        #
+        # elif limit == 0:
+        #     raise exceptions.ValueError("[MESSAGE] Cant retrieve 0 updates, \
+        #                                  please, specify value bigger than 1"
+        #                                 " to get_updates() method or leave it"
+        #                                 " blank to retrieve first of unread \
+        #                                 updates")
 
     def get_file(self, file_id):
 
@@ -398,7 +424,7 @@ class User(object):
     # last_name = ''
     # username = ''
 
-    def __init__(self, user_id=0, first_name='', last_name='', username=''):
+    def __init__(self,  user_id=0, first_name='', last_name='', username=''):
         self.id = user_id
         self.first_name = first_name
         self.last_name = last_name
@@ -661,7 +687,7 @@ class Contact(object):
         return cls
 
 
-class Location(object):
+class Location(Media):
 
     """
     This object represents a point on the map.
@@ -707,11 +733,12 @@ class File(object):
     file_path = ''
 
 
-class Message(object):
+class Message(Media):
 
     """
     This object represents a message
     """
+    raw_message = ''
     # TODO to be added in future
     # new_chat_participant = ''
     # left_chat_participant = ''
@@ -859,30 +886,3 @@ class Message(object):
             pass
 
         return self
-
-
-class Response(object):
-
-    def __init__(self, data):
-        self.Response = self.construct(data)
-
-    @staticmethod
-    def construct(data):
-        data_object = Message()
-
-        return data_object.from_json(response=data)
-
-
-class Update(object):
-
-    raw_update = ''
-
-    def __init__(self, update):
-        self.raw_update = update
-        self.Update = self.construct(update)
-
-    @staticmethod
-    def construct(message):
-        message_object = Message()
-
-        return message_object.from_json(response=message['message'])
