@@ -585,7 +585,7 @@ class Sticker(PhotoSize):
     """
     This object represents a sticker.
     """
-
+    file_path = ''
     thumb = PhotoSize()
 
     def __init__(self):
@@ -595,7 +595,10 @@ class Sticker(PhotoSize):
 
         super(Sticker, self).from_json(sticker)
         self.thumb = Media.get_thumb(sticker)
-
+        try:
+            self.file_path = sticker['file_path']
+        except KeyError:
+            pass
         return self
 
 
@@ -647,7 +650,7 @@ class Text(object):
 
     @classmethod
     def from_json(cls, plain_text):
-        # TODO make is possible to process russian and ukrainial letters
+        # TODO make is possible to process russian and ukrainian letters
         return cls(str(plain_text))
 
 
