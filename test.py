@@ -1,6 +1,7 @@
 import telegrambot as tb
 import unittest
-import urlparse
+import urllib2
+from datetime import datetime as dt
 
 # In order to run this unit tests on your bot and
 # Telegram user account, please fill the following
@@ -30,21 +31,23 @@ class TelegramBotTest(unittest.TestCase):
         And: checked through assertions of fields equality
 
     """
-    def test_01_getMe(self):
+    def test_getMe(self):
 
         response = bot.get_me()
         self.assertIsNotNone(response)
 
-    def test_02_get_updates(self):
+    def test_get_updates(self):
         response = bot.get_updates()
         self.assertIsNotNone(response)
 
-    def test_03_send_message(self):
+    def test_send_message(self):
+        res = bot.get_updates()
         response = bot.send_message("Hello World!")
         self.assertIsNotNone(response)
         self.assertEqual('Hello World!', response.raw_message['text'])
 
-    def test_04_send_photo(self):
+    def test_send_photo(self):
+        res = bot.get_updates()
         hello = 'test/hello.jpg'
         response = bot.send_photo(bot.chat_id,
                                   hello,
@@ -54,7 +57,8 @@ class TelegramBotTest(unittest.TestCase):
         self.assertIsNotNone(response)
         self.assertIsNotNone(response.raw_message['photo'])
 
-    def test_05_send_audio(self):
+    def test_send_audio(self):
+        res = bot.get_updates()
         music = 'test/sample_audio.mp3'
         bot.send_chat_action(bot.chat_id, 'upload_audio')
         response = bot.send_audio(bot.chat_id,
@@ -65,20 +69,24 @@ class TelegramBotTest(unittest.TestCase):
         self.assertIsNotNone(response)
         self.assertEqual('audio/mpeg', response.raw_message['audio']['mime_type'])
 
-    def test_06_send_document(self):
+    def test_send_document(self):
+        res = bot.get_updates()
+
         document = 'test/LICENSE.pdf'
         response = bot.send_document(bot.chat_id, document, '', '')
         self.assertIsNotNone(response)
         self.assertEqual('application/pdf', response.raw_message['document']['mime_type'])
 
-    def test_07_send_sticker(self):
+    def test_send_sticker(self):
+        res = bot.get_updates()
         sticker_id = 'BQADAgADQAADyIsGAAGMQCvHaYLU_AI'
         response = bot.send_sticker(bot.chat_id, sticker_id, '', '')
 
         self.assertIsNotNone(response)
         self.assertIsNotNone(response.raw_message['sticker']['thumb'])
 
-    def test_08_send_voice(self):
+    def test_send_voice(self):
+        res = bot.get_updates()
         voice = 'test/voice_record.mp3'
         response = bot.send_voice(bot.chat_id,
                                   voice,
@@ -89,7 +97,8 @@ class TelegramBotTest(unittest.TestCase):
         self.assertIsNotNone(response)
         self.assertEqual('audio/mpeg', response.raw_message['voice']['mime_type'])
 
-    def test_09_send_video(self):
+    def test_send_video(self):
+        res = bot.get_updates()
         video = 'test/sample_video.mp4'
         response = bot.send_video(bot.chat_id, video,
                                   caption='Have some fun!',
@@ -99,7 +108,8 @@ class TelegramBotTest(unittest.TestCase):
         self.assertIsNotNone(response)
         self.assertEqual(45, response.raw_message['video']['duration'])
 
-    def test_10_send_locations(self):
+    def test_send_locations(self):
+        res = bot.get_updates()
         # location found with this service http://www.mapcoordinates.net/en
         response = bot.send_location(bot.chat_id,
                                      longitude=float(-21.90981746),
@@ -110,23 +120,24 @@ class TelegramBotTest(unittest.TestCase):
         self.assertAlmostEqual(float(64.54314655),
                                response.raw_message['location']['latitude'], places=4)
 
-    def test_11_get_file(self):
+    def test_get_file(self):
+        res = bot.get_updates()
         file_id = "BQADAgADQAADyIsGAAGMQCvHaYLU_AI"
 
         response = bot.get_file(file_id)
-        parsed = urlparse.urlparse(response)
-        to_compare = '/file/bot' + TOKEN + '/document/file_630'
-        self.assertEqual(to_compare, str(parsed[2]))
+        resp = urllib2.urlopen(str(response))
+        self.assertEqual(200, resp.code)
 
-    def test_12_forward_message(self):
-        res = bot.send_message("Forward")
-        sent_message_id = int(res.message_id)
-        response = bot.forward_message(bot.chat_id, bot.chat_id, sent_message_id)
-        self.assertIsNotNone(response)
-        self.assertEqual(bot_first_name, response.forward_from.first_name)
-        self.assertEqual(response.message_id, sent_message_id + 1)
+    # def test_forward_message(self):
+    #     # res = bot.get_updates()
+    #     res = bot.send_message("Forward")
+    #     sent_message_id = int(res.message_id)
+    #     response = bot.forward_message(bot.chat_id, bot.chat_id, sent_message_id)
+    #     self.assertIsNotNone(response)
+    #     self.assertEqual(bot_first_name, response.forward_from.first_name)
+    #     self.assertEqual(response.message_id, sent_message_id + 1)
 
-    def test_13_User(self):
+    def test_User(self):
         user_raw = {'username': bot_username, 'first_name': bot_first_name, 'id': 11223344}
         user = tb.User()
         user = user.from_json(user_raw)
@@ -134,7 +145,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(bot_first_name, user.first_name)
         self.assertEqual(11223344, user.id)
 
-    def test_14_Chat(self):
+    def test_Chat(self):
         chat_raw = {'first_name': real_user_first_name,
                     'last_name': real_user_last_name,
                     'type': 'private', 'id': 11223344}
@@ -145,7 +156,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(chat_raw['type'], chat.type)
         self.assertEqual(chat_raw['id'], chat.id)
 
-    def test_15_PhotoSize(self):
+    def test_PhotoSize(self):
         photo_raw = {'width': 90, 'height': 90,
                      'file_id': 'AgADAgADiKgxG9lZFQm4qp_yy4GhiHEagyoABFK11Vg4PdwQKjwAAgI',
                      'file_size': 1263}
@@ -156,7 +167,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(photo_raw['file_id'], photo_size.file_id)
         self.assertEqual(photo_raw['file_size'], photo_size.file_size)
 
-    def test_16_Voice(self):
+    def test_Voice(self):
         voice_raw = {'duration': 20,
                      'file_id': 'AwADAgADQgIAAtlZFQk8hHdbJQKRDAI',
                      'mime_type': 'audio/mpeg',
@@ -168,7 +179,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(voice_raw['mime_type'], voice.mime_type)
         self.assertEqual(voice_raw['file_size'], voice.file_size)
 
-    def test_17_Audio(self):
+    def test_Audio(self):
         audio_raw = {'performer': 'Nu Gravity',
                      'title': 'People',
                      'file_id': 'BQADAgADQwIAAtlZFQl-JLBvpCb2JwI',
@@ -184,7 +195,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(audio_raw['duration'], audio.duration)
         self.assertEqual(audio_raw['mime_type'], audio.mime_type)
 
-    def test_18_Video(self):
+    def test_Video(self):
         video_raw = {'duration': 45, 'width': 640,
                      'file_size': 917214,
                      'file_id': 'BAADAgADTwIAAtlZFQlRi0lUkQ0nDwI',
@@ -197,7 +208,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(video_raw['file_id'], video.file_id)
         self.assertEqual(video_raw['file_size'], video.file_size)
 
-    def test_19_Sticker(self):
+    def test_Sticker(self):
         sticker_raw = {'thumb': {'height': 90, 'file_path': 'thumb/file_564.jpg',
                                  'width': 63, 'file_id': 'AAQCABMbzlkqAAR-48dHTQ5BGXh-AAIC',
                                  'file_size': 2142}, 'height': 512, 'width': 362,
@@ -215,7 +226,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(sticker_raw['thumb']['file_id'], sticker.thumb.file_id)
         self.assertEqual(sticker_raw['thumb']['file_size'], sticker.thumb.file_size)
 
-    def test_20_Document(self):
+    def test_Document(self):
         document_raw = {'file_name': 'LICENSE.pdf',
                         'file_id': 'BQADAgADUAIAAtlZFQn3aBlQqPEFMAI',
                         'mime_type': 'application/pdf', 'file_size': 239074}
@@ -226,7 +237,7 @@ class TelegramBotTest(unittest.TestCase):
         self.assertEqual(document_raw['file_id'], document.file_id)
         self.assertEqual(document_raw['file_size'], document.file_size)
 
-    def test_21_Location(self):
+    def test_Location(self):
         location_raw = {'latitude': 64.543153, 'longitude': -21.909839}
 
         location = tb.Location()
@@ -234,6 +245,35 @@ class TelegramBotTest(unittest.TestCase):
         self.assertAlmostEqual(location_raw['latitude'], location.latitude, places=4)
         self.assertAlmostEqual(location_raw['longitude'], location.longitude, places=4)
 
+    def test_Update(self):
+        update_raw = {'message': {'date': 1451421039,
+                                   'text': 'This is test message',
+                                   'from': {'first_name': 'Roman',
+                                            'last_name': 'Joe', 'id': 162457279},
+                                   'message_id': 2656, 'chat': {'first_name': 'Roman',
+                                                                'last_name': 'Joe', 'type': 'private',
+                                                                'id': 162457279}},
+                      'update_id': 67525620}
+
+        update = tb.Update()
+        update = update.from_json(update_raw)
+        self.assertEqual(update_raw['update_id'], update.update_id)
+
+    # def test_Message(self):
+    #     message_raw = {'message': {'date': 1451421039,
+    #                                'text': 'This is test message',
+    #                                'from': {'first_name': 'Roman',
+    #                                         'last_name': 'Joe', 'id': 162457279},
+    #                                'message_id': 2656, 'chat': {'first_name': 'Roman',
+    #                                                             'last_name': 'Joe', 'type': 'private',
+    #                                                             'id': 162457279}},
+    #                    'update_id': 67525620}
+    #     message = tb.Message()
+    #     message = message.from_json(message_raw['message'])
+    #     self.assertEqual(message_raw['update_id'], 67525620)
+    #     self.assertEqual(dt.fromtimestamp(message_raw['message']['date']).
+    #                      strftime('%Y-%m-%d %H:%M:%S'), message.date)
+    #     self.assertEqual(message_raw['message']['text'], message.text.text_message)
 
 if __name__ == '__main__':
     unittest.main()

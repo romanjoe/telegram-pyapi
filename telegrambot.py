@@ -37,6 +37,9 @@ class Telegram(object):
         response = requests.post(self.url_token +
                                  api_call, files=files, data=data)
 
+        if response.json()['ok'] is not True:
+            print " ++++ Bad request, 'ok' field in response was False"
+
         if not response.status_code == 200:
             return False
 
@@ -45,18 +48,26 @@ class Telegram(object):
         return response.json()['result']
 
     @staticmethod
-    def construct(message):
-        message_object = Message()
-        message_object.raw_message = message
-        #  try to access ['message'] field, if it is present, then
-        #  this is an update, else it is a response to one of the
-        #  post requests
-        try:
-            return message_object.from_json(response=message['message'])
-        except KeyError:
-            return message_object.from_json(response=message)
-        except TypeError:
-            print "++++++++ TypeError occurred"
+    def construct(update):
+
+        if type(update) is bool:
+            print " ++++ Update has not been received"
+            exit(-1)
+
+        if 'message' in update:
+            try:
+                update_object = Update()
+                update_object.raw_update = update
+                return update_object.from_json(update=update_object.raw_update)
+            except KeyError:
+                pass
+        else:
+            try:
+                message_object = Message()
+                message_object.raw_message = update
+                return message_object.from_json(response=message_object.raw_message)
+            except KeyError:
+                pass
 
 
 class TelegramBot(Telegram):
@@ -815,8 +826,7 @@ class Message(Media):
             pass
 
         try:
-            self.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d \
-                                                                     %H:%M:%S')
+            self.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d %H:%M:%S')
         except (KeyError, TypeError):
             pass
 
@@ -886,6 +896,26 @@ class Message(Media):
             location = Location()
             self.location = location.from_json(response['location'])
         except (KeyError, TypeError):
+            pass
+
+        return self
+
+
+class Update(Message):
+    raw_update = ''
+
+    def __init__(self):
+        self.update_id = 0
+        self.message = Message()
+
+    def from_json(self, update):
+
+        self.raw_update = update
+
+        try:
+            self.update_id = update['update_id']
+            self.message.from_json(update)
+        except KeyError:
             pass
 
         return self
