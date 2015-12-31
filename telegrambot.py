@@ -22,17 +22,7 @@ class Telegram(object):
         self.token = token
         self.url_token = self.API_BASE + token
 
-    @staticmethod
-    def log_event(text):
-        event = '%s >> %s' % (time.ctime(), text)
-        print event
-
     def post_request(self, data, files, api_call):
-
-        if DEBUG:
-            Telegram.log_event('Sending json %s to \
-             %s' % (data, data['chat_id'],))
-            # TODO: make more precise function for logging
 
         response = requests.post(self.url_token +
                                  api_call, files=files, data=data)
@@ -57,8 +47,7 @@ class Telegram(object):
         if 'message' in update:
             try:
                 update_object = Update()
-                update_object.raw_update = update
-                return update_object.from_json(update=update_object.raw_update)
+                return update_object.from_json(update=update)
             except KeyError:
                 pass
         else:
@@ -102,9 +91,6 @@ class TelegramBot(Telegram):
 
     def get_me(self):
 
-        if DEBUG:
-            self.log_event('Sending getMe to check token is correct')
-
         data = {}
         return self.post_request(data, '', self.api['getMe'])
 
@@ -118,8 +104,6 @@ class TelegramBot(Telegram):
         :return: Message json object type
         refference - https://core.telegram.org/bots/api#message
         """
-        if DEBUG:
-            self.log_event('Sending text to %s: %s' % (self.chat_id, text))
 
         data = {'chat_id': self.chat_id, 'text': text}
         response = self.post_request(data, '', self.api['sendMessage'])
@@ -145,9 +129,6 @@ class TelegramBot(Telegram):
 
     def send_photo(self, chat_id, photo, caption='',
                    reply_to_message_id='', reply_markup=''):
-
-        # TODO make it possible to pass images with url in form
-        # like urllib.urlopen(image_url).read()
 
         """
         Send photo by id (already uploaded to telegram) or as object of this
@@ -429,12 +410,6 @@ class User(object):
     This object represents a Telegram user or bot
     """
 
-    # attributes:
-    # id = 0
-    # first_name = ''
-    # last_name = ''
-    # username = ''
-
     def __init__(self,  user_id=0, first_name='', last_name='', username=''):
         self.id = user_id
         self.first_name = first_name
@@ -445,11 +420,10 @@ class User(object):
 
         self.id = user['id']
         self.first_name = user['first_name']
-
+        # the following parameters are optional
         try:
             self.last_name = user['last_name']
         except KeyError:
-            self.last_name = ''
             pass
         try:
             self.username = user['username']
@@ -464,24 +438,42 @@ class Chat(object):
     """
     This object represents a chat
     """
-    # attributes:
-    id = 0
-    type = ''
-    title = ''
-    first_name = ''
-    last_name = ''
 
-    def __init__(self, chat_id=0, type='', first_name='', last_name=''):
+    def __init__(self, chat_id=0, chat_type='',
+                 first_name='', last_name='', username='',
+                 title=''):
 
         self.id = chat_id
-        self.type = type
+        self.chat_type = chat_type
         self.first_name = first_name
         self.last_name = last_name
+        self.username = username
+        self.title = title
 
-    @classmethod
-    def from_json(cls, chat):
-        return cls(chat['id'], chat['type'], chat['first_name'],
-                   chat['last_name'])
+    def from_json(self, chat):
+
+        self.id = chat['id']
+        self.chat_type = chat['type']
+
+        # the following parameters are optional
+        try:
+            self.last_name = chat['last_name']
+        except KeyError:
+            pass
+        try:
+            self.first_name = chat['first_name']
+        except KeyError:
+            pass
+        try:
+            self.title = chat['title']
+        except KeyError:
+            pass
+        try:
+            self.username = chat['username']
+        except KeyError:
+            pass
+
+        return self
 
 
 class Media(object):
@@ -492,7 +484,7 @@ class Media(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, file_id=0, file_size=0, mime_type=''):
+    def __init__(self, file_id='', file_size=0, mime_type=''):
         self.file_id = file_id
         self.file_size = file_size
         self.mime_type = mime_type
@@ -629,7 +621,10 @@ class Document(Sticker):
     def from_json(self, document):
 
         super(Document, self).from_json(document)
-        self.file_name = document['file_name']
+        try:
+            self.file_name = document['file_name']
+        except:
+            pass
         self.thumb = Media.get_thumb(document)
 
         return self
@@ -662,43 +657,8 @@ class Text(object):
     @classmethod
     def from_json(cls, plain_text):
         # TODO make is possible to process russian and ukrainian letters
-        return cls(str(plain_text))
-
-
-class Contact(object):
-
-    """
-    This object represents a phone contact.
-    """
-
-    phone_number = ''
-    first_name = ''
-    last_name = ''
-    user_id = 0
-
-    def __init__(self, phone_number='', first_name='',
-                 last_name='', user_id=0):
-        self.phone_number = phone_number
-        self.first_name = first_name
-        self.last_name = last_name
-        self.user_id = user_id
-
-    @classmethod
-    def from_json(cls, contact):
-
-        cls.phone_number = contact['phone_number']
-        cls.first_name = contact['first_name']
-
-        try:
-            cls.last_name = contact['last_name']
-        except KeyError:
-            pass
-        try:
-            cls.user_id = contact['user_id']
-        except KeyError:
-            pass
-
-        return cls
+        plain_text_utf_8 = unicode(plain_text, 'utf-8')
+        return cls(plain_text_utf_8)
 
 
 class Location(Media):
@@ -720,31 +680,6 @@ class Location(Media):
         self.latitude = location['latitude']
 
         return self
-
-
-class UserProfilePhotos(object):
-
-    """
-    This object represent a user's profile pictures.
-    """
-
-    total_count = 0
-    photos = []
-
-
-class File(object):
-
-    """
-    This object represents a file ready to be downloaded.
-    The file can be downloaded via the link
-    https://api.telegram.org/file/bot<token>/<file_path>.
-    It is guaranteed that the link will be valid for at least 1 hour.
-    When the link expires, a new one can be requested by calling getFile.
-    """
-
-    file_id = ''
-    file_size = 0
-    file_path = ''
 
 
 class Message(Media):
@@ -780,7 +715,7 @@ class Message(Media):
                  video=Video(),
                  voice=Voice(),
                  caption='',
-                 contact=Contact(),
+                 # contact=Contact(),
                  location=Location()
                  ):
         self.message_id = message_id
@@ -798,7 +733,7 @@ class Message(Media):
         self.video = video
         self.voice = voice
         self.caption = caption
-        self.contact = contact
+        # self.contact = contact
         self.location = location
 
     def from_json(self, response):
@@ -826,18 +761,19 @@ class Message(Media):
             pass
 
         try:
-            self.date = dt.fromtimestamp(response['date']).strftime('%Y-%m-%d %H:%M:%S')
+            self.date = self.humanize_date(response['date'])
         except (KeyError, TypeError):
             pass
 
         try:
-            self.forward_date = dt.fromtimestamp(
-                response['forward_date']).strftime('%Y-%m-%d %H:%M:%S')
+            self.forward_date = self.humanize_date(
+                response['forward_date'])
         except (KeyError, TypeError):
             pass
 
         try:
-            self.chat = Chat.from_json(response['chat'])
+            chat = Chat()
+            self.chat = chat.from_json(response['chat'])
         except (KeyError, TypeError):
             pass
 
@@ -888,17 +824,16 @@ class Message(Media):
             pass
 
         try:
-            self.contact = Contact.from_json(response['contact'])
-        except (KeyError, TypeError):
-            pass
-
-        try:
             location = Location()
             self.location = location.from_json(response['location'])
         except (KeyError, TypeError):
             pass
 
         return self
+
+    @staticmethod
+    def humanize_date(unix_date):
+        return dt.fromtimestamp(unix_date).strftime('%Y-%m-%d %H:%M:%S')
 
 
 class Update(Message):
@@ -912,10 +847,7 @@ class Update(Message):
 
         self.raw_update = update
 
-        try:
-            self.update_id = update['update_id']
-            self.message.from_json(update)
-        except KeyError:
-            pass
+        self.update_id = update['update_id']
+        self.message.from_json(update['message'])
 
         return self
