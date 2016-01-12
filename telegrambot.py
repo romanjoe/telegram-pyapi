@@ -42,7 +42,7 @@ class Telegram(object):
 
         if type(update) is bool:
             print " ++++ Update has not been received"
-            exit(-1)
+           #exit(-1)
 
         if 'message' in update:
             try:
@@ -67,6 +67,9 @@ class TelegramBot(Telegram):
 
     offset = 0
     chat_id = 0
+    master_id = 0
+    master_pass = '12345'
+    last_update = ''
 
     api = {'getMe': '/getMe',
            'sendMessage': '/sendMessage',
@@ -89,6 +92,14 @@ class TelegramBot(Telegram):
         self.offset = 0
         self.chat_id = 0
 
+    def set_master(self):
+        update = self.get_updates()
+        password = update.text.text_message
+        if password == self.master_pass:
+            self.master_id = update.message.message_from.id
+        else:
+            self.send_message("You")
+
     def get_me(self):
 
         data = {}
@@ -104,7 +115,6 @@ class TelegramBot(Telegram):
         :return: Message json object type
         refference - https://core.telegram.org/bots/api#message
         """
-
         data = {'chat_id': self.chat_id, 'text': text}
         response = self.post_request(data, '', self.api['sendMessage'])
         return self.construct(response)
@@ -121,7 +131,6 @@ class TelegramBot(Telegram):
         :param message_id: which message to forward
         :return: Message json object with sent message
         """
-
         data = {'chat_id': chat_id, 'from_chat_id': from_chat_id,
                 'message_id': message_id}
         response = self.post_request(data, '', self.api['forwardMessage'])
@@ -355,9 +364,6 @@ class TelegramBot(Telegram):
         if limit == 1:
             try:
                 single_update_object = self.construct(updates[0])
-                #
-                # print(single_update_object)
-                # print "+++++" + str(updates[0])
 
                 self.offset = updates[0]['update_id']
                 self.chat_id = updates[0]['message']['chat']['id']
@@ -365,6 +371,7 @@ class TelegramBot(Telegram):
                 return single_update_object
 
             except IndexError:
+
                 return []
 
         # elif limit > 1:
