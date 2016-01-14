@@ -35,7 +35,7 @@ class TelegramBotIntegrationTests(unittest.TestCase):
         response = bot.get_me()
         self.assertIsNotNone(response)
 
-    def test_set_master(self):
+    def test_1_set_master(self):
         bot.set_master()
         print "---"
 

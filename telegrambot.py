@@ -93,12 +93,29 @@ class TelegramBot(Telegram):
         self.chat_id = 0
 
     def set_master(self):
+
+        """
+        This method allows you to assign a master user ID by a password
+        provided in a message. Then you can use self.master_id for
+        authentication before handling some commands.
+        This is useful if you are going to use a bot for triggering some
+        events, which should have some amount of secure.
+        :return: bool result of operation
+        """
+
         update = self.get_updates()
-        password = update.text.text_message
-        if password == self.master_pass:
-            self.master_id = update.message.message_from.id
-        else:
-            self.send_message("You")
+        try:
+            password = update.message.text.text_message
+
+            if password == self.master_pass:
+                self.master_id = update.message.message_from.id
+                self.send_message("Password is correct! Hello, master!")
+                return True
+            else:
+                self.send_message("Wrong password, you are no a master!")
+                return False
+        except AttributeError:
+            return False
 
     def get_me(self):
 
@@ -115,7 +132,10 @@ class TelegramBot(Telegram):
         :return: Message json object type
         refference - https://core.telegram.org/bots/api#message
         """
-        data = {'chat_id': self.chat_id, 'text': text}
+        if self.chat_id is 0:
+            data = {'chat_id': self.master_id, 'text': text}
+        else:
+            data = {'chat_id': self.chat_id, 'text': text}
         response = self.post_request(data, '', self.api['sendMessage'])
         return self.construct(response)
 
@@ -374,23 +394,23 @@ class TelegramBot(Telegram):
 
                 return []
 
-        # elif limit > 1:
-        #
-        #     array_of_updates_objects = []
-        #
-        #     for update in updates:
-        #         array_of_updates_objects.append(Update(update))
-        #         self.offset = update['update_id']
-        #         self.chat_id = update['message']['chat']['id']
-        #
-        #     return array_of_updates_objects
-        #
-        # elif limit == 0:
-        #     raise exceptions.ValueError("[MESSAGE] Cant retrieve 0 updates, \
-        #                                  please, specify value bigger than 1"
-        #                                 " to get_updates() method or leave it"
-        #                                 " blank to retrieve first of unread \
-        #                                 updates")
+        elif limit > 1:
+
+            array_of_updates_objects = []
+
+            for update in updates:
+                array_of_updates_objects.append(Update(update))
+                self.offset = update['update_id']
+                self.chat_id = update['message']['chat']['id']
+
+            return array_of_updates_objects
+
+        elif limit == 0:
+            raise exceptions.ValueError("[MESSAGE] Cant retrieve 0 updates, \
+                                         please, specify value bigger than 1"
+                                        " to get_updates() method or leave it"
+                                        " blank to retrieve first of unread \
+                                        updates")
 
     def get_file(self, file_id):
 
@@ -661,11 +681,11 @@ class Text(object):
     def __init__(self, message=''):
         self.text_message = message
 
-    @classmethod
-    def from_json(cls, plain_text):
+    def from_json(self, plain_text):
         # TODO make is possible to process russian and ukrainian letters
-        plain_text_utf_8 = unicode(plain_text, 'utf-8')
-        return cls(plain_text_utf_8)
+        #self.text_message = unicode(plain_text, 'utf-8')
+        self.text_message = plain_text
+        return self
 
 
 class Location(Media):
@@ -785,7 +805,8 @@ class Message(Media):
             pass
 
         try:
-            self.text = Text.from_json(response['text'])
+            text = Text()
+            self.text = text.from_json(response['text'])
         except (KeyError, TypeError):
             pass
 
