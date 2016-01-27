@@ -104,12 +104,16 @@ class TelegramBot(Telegram):
         """
 
         update = self.get_updates()
+
+        if not update:
+            update = self.construct(self.last_update)
+
         try:
             password = update.message.text.text_message
 
             if password == self.master_pass:
                 self.master_id = update.message.message_from.id
-                self.send_message("Password is correct! Hello, master!")
+                self.send_message("Password is correct! Greetings, Sir!")
                 return True
             else:
                 self.send_message("Wrong password, you are no a master!")
@@ -388,6 +392,8 @@ class TelegramBot(Telegram):
                 self.offset = updates[0]['update_id']
                 self.chat_id = updates[0]['message']['chat']['id']
 
+                if updates[0] is not None:
+                    self.last_update = updates[0]
                 return single_update_object
 
             except IndexError:

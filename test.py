@@ -251,12 +251,12 @@ class TelegramBotMediaObjTest(unittest.TestCase):
         self.assertAlmostEqual(location_raw['latitude'], location.latitude, places=4)
         self.assertAlmostEqual(location_raw['longitude'], location.longitude, places=4)
 
-    def test_Message_Humanize_date(self):
-        sample_time_in_unix_format = 1451421039
-        expected_after_conversion = '2015-12-29 22:30:39'
-        date = tb.Message.humanize_date(sample_time_in_unix_format)
-
-        self.assertEqual(expected_after_conversion, date)
+    # def test_Message_Humanize_date(self):
+    #     sample_time_in_unix_format = 1451421039
+    #     expected_after_conversion = '2015-12-29 22:30:39'
+    #     date = tb.Message.humanize_date(sample_time_in_unix_format)
+    #
+    #     self.assertEqual(expected_after_conversion, date)
 
     def test_Message_With_Text(self):
         message_raw = {'date': 1451421039,
